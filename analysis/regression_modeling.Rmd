@@ -1,0 +1,756 @@
+---
+title: 'Regression'
+author: "Leona Vracar"
+date: "2025-01-12"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    code_folding: hide
+    theme: readable
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Function for analysis of variables
+variable_analysis <- function(vect) {
+  result <- list(
+    mean = mean(vect),
+    median = median(vect),
+    variance = var(vect),
+    sd = sd(vect),
+    IQR = IQR(vect),
+    min = min(vect),
+    max = max(vect),
+    range = max(vect) - min(vect)
+  )
+  return(result)
+}
+
+print_nice <- function(result) {
+  # put stats in tble
+  table <- as.data.frame(t(as.data.frame(result)))
+  colnames(table) <- "Value"  # value is 2nd column
+  table <- round(table, 4)  
+  
+  # Print, left align and title
+  knitr::kable(table, caption = "Summary Statistics", align = c("l", "r"))
+}
+
+```
+
+
+# Task 1: Transformation on dataset "UN"
+
+In general the dataset UN provides information about National Statistics
+from the United Nations, Mostly from 2009–2011.
+
+The dataset contains 7 variables (columns) which are region, group,
+fertility, per capita gross domestic product, female life expectancy,
+percent urban and infant mortality and 213 rows representing places
+(mostly UN members).
+
+```{r}
+library("car")
+data("UN")
+```
+
+## Filtering of 'NA' values
+
+To filter 'NA' values the function `na.omit` is used. This leaves us
+with:
+
+```{r}
+#'NA' Werte entfernen mit na.omit
+cleaned_UN <- na.omit(UN)
+summary(cleaned_UN)
+```
+
+## Plotting the given data
+
+Infant mortality is to be explained by gross domestic product. For these
+data, a scatterplot and residual plots are first created to check all
+the necessary statistical assumptions for the validity of the linear
+model.
+
+```{r plots }
+#Scatterplot for Infant Mortality and gross domestic product
+plot(cleaned_UN$ppgdp, cleaned_UN$infantMortality)
+
+#Residual plots for Infant Mortality and gross domestic product
+summary(lm(formula = cleaned_UN$ppgdp ~ cleaned_UN$infantMortality, data = UN))
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
+plot(lm(formula = cleaned_UN$infantMortality ~ cleaned_UN$ppgdp, data = UN))
+
+
+```
+
+## Log transformation of the data & model fitting
+
+The data cannot be directly fitted with a linear model. The adjusted
+R-squared for example is only 0.2618. This is a power function (there
+are heavy tails on both sides). Therefore, a log transformation is
+applied to both axes.
+
+```{r}
+#log10 transformation of y-values + x-values
+log_infant_Mortality <- log(cleaned_UN$infantMortality)
+log_ppgdp <- log(cleaned_UN$ppgdp)
+```
+
+```{r }
+#model adaption
+model <- lm(log_infant_Mortality~log_ppgdp, data=cleaned_UN)
+summary(model)
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
+plot(model)
+plot(log_ppgdp, log_infant_Mortality)
+abline(model)
+
+```
+
+After the transformation we see a linear relationship between the
+"infant Mortality" and the "ppgdp" (per capita gross domestic product).
+The adjusted R-squared is now at 0,765, which is way better than before
+and means that the model explains the data quite well. Furthermore,
+looking at the residual plots, we can accept the following assumptions:
+
+-\> The model has no systematic error.
+
+-\> The error variance is the same for all observations (homoscedastic).
+
+-\> The components of the error term are uncorrelated.
+
+-\> The model error is normally distributed.
+
+Therefore we can now fit a linear model.
+
+### Linear Model Equation
+
+$log(InfantMortality) = 8.10377  - 0.61680 * log(gpd)$
+
+We should not forget, that the original data is a power function. So we
+have to adapt our linear model equation to be able to interpret the
+given data.
+
+$InfantMortality=e^{8.10377} * gpd^{−0.61680}$
+
+This means if the gdp is 1, the infant mortality will be e\^8,10377 (so
+about 3306,9 Infant deaths by age one per 1000 live births) and if the
+ggpd increases by 1%, the infant mortality decreases by 0.6168%.
+
+# Task 2: Swiss
+
+The swiss dataset is a data frame with 47 observations on 6 variables
+about Fertility and Socioeconomic Indicators from 1888. The 6 variables
+are Fertility, Agriculture, Examination, Education, Catholic and Infant
+Mortality.
+
+## Mutiple Linear Regression
+
+```{r}
+# load the dataset 
+data("swiss")
+summary(swiss)
+
+# put (absolute) correlations on the upper panels,
+# with size proportional to the correlations.
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+  par(usr = c(0, 1, 0, 1))
+  r <- abs(cor(x, y))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste0(prefix, txt)
+  if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = cex.cor * r, col=ifelse(r>0.5,2,1
+  ))
+}
+#put histograms on the diagonal 
+panel.hist <- function(x, ...)
+{
+  usr <- par("usr")
+  par(usr = c(usr[1:2], 0, 1.5) )
+  h <- hist(x, plot = FALSE)
+  breaks <- h$breaks; nB <- length(breaks)
+  y <- h$counts; y <- y/max(y)
+  rect(breaks[-nB], 0, breaks[-1], y, col = "cyan", ...)
+}
+
+
+pairs(swiss, lower.panel = panel.smooth,diag.panel = panel.hist, upper.panel = panel.cor)
+summary(lm(formula = Education ~ ., data = swiss))
+```
+
+Examination was kicked out of the model, due its high correlation to
+Fertility, Agriculture, Catholic and Infant Mortality. It is better to
+eliminate one variable than the other four.
+
+## Model adaptation
+
+### Checking the significance of estimates
+
+```{r}
+# Filtering Examination 
+pairs(swiss[,-3], lower.panel = panel.smooth,diag.panel = panel.hist, upper.panel = panel.cor)
+# Model adaption 
+lm_model_1 <- lm(formula = Education ~ . - Examination, data = swiss) 
+summary(lm_model_1)
+```
+
+After fitting a linear regression model predicting Education based on
+all variables in the swiss dataset (Examination excluded), we see that
+the p value (**0.28**) of infant mortality is not significant. Hence,
+infant mortality is removed from the model.
+
+```{r}
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
+plot(lm_model_1)
+par(mfrow = c(1, 1))
+# kicked out: Infant Mortality 
+summary(lm(formula = Education ~ . - Examination - Infant.Mortality, data = swiss))
+```
+
+With infant mortality and Examination removed, the intercept changes to
+**53.8505**, showing that this value has increased compared to
+**49.99303** intercept with the infant mortality in the dataset. It is
+also apparent, that the estimates for fertility and agriculture
+decreased to **-0.48** and **-0.23**, whereas the estimate for the
+Catholic variable increased above **0.0833** when infant mortality is
+kicked out of the dataset.
+
+Overall, the Multiple R-squared with Infant Mortality in the dataset has
+a value of \*\*0.7305\*\* and without \*\*0.7048**. The Adjusted
+R-squared changes from** 0.7048 **to** 0.7055\*\* without this variable.
+Thus, it can be observed that infant mortality can be excluded from the
+model as it doesn't significantly decrease the R-squared value.
+
+Therefore, we now have a multiple model that includes Fertility,
+Agriculture, and Catholic. With these, the residual plots are now
+created:
+
+```{r}
+# Model adaption without Infant Mortality 
+lm_model_2 <- lm(formula = Education ~ . - Examination - Infant.Mortality, data = swiss)
+
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
+plot(lm_model_2)
+par(mfrow = c(1, 1))
+```
+
+-\> The model has no systematic error.
+
+-\> The error variance is the same for all observations (homoscedastic).
+
+-\> The components of the error term are uncorrelated.
+
+-\> The model error is normally distributed.
+
+Therefore the fit of a linear model is correct.
+
+### Leverage Point
+
+As seen in plot 1, Val de Geneve has a higher education rate, which can
+also be detected in different plots, especially in the leverage plot.
+Meaning that this value is a leverage point and we have to look at it
+more details. This point is the 45th observation and is kicked out in
+the code below, to see if it is a good or bad leverage point.
+
+```{r}
+# kicked out Val de Geneve point. 
+summary(lm(formula = Education ~ . - Examination - Infant.Mortality, data = swiss[-45, ]))
+```
+
+Without Val de Geneve the calculated Intercept was **45.27** compared to
+**53.85**. Therefore, we refer to a 10% points poorer fit. The fertility
+gradient is now lower than it was within the Val de Geneve in the data
+set. In general, the intercept has a great influence on the leverage
+point and one can decide between a good or bad leverage point.
+Especially the Multiple (0.6216) and Adjusted R-squared (0.5945) show
+that the Val de Geneve value is necessary in the data set. As a result,
+we speak of a good leverage point, due to its ability to stabilize the
+regression line. Despite the fact that it lies far from the other
+points, it is important to leave it in the data.
+
+### Summary
+
+In this example the Education (the % education beyond primary school for
+draftees) of Swiss in 1888 is explained in a multiple linear regression
+model through the variables Fertility, Agriculture and Catholic.
+
+The equation is stated as followed: $$ 
+Education = 45.2863 - 0.38468 * Fertility - 0.20240 * Agriculture + 0.06188 * Catholic
+$$ This means that if all the other variables are 0, Education beyond
+primary school is about 45% for draftees. If Fertility increases by 1
+unit, Education decreases by 0.3847 percentage points. If Agriculture
+increases by 1 unit, Education decreases by 0.020240 percentage points
+and if Catholic is increased by 1 unit, Education is increased by
+0,06188 percentage points. So Agriculture and Fertility have a
+decreasing effect on Education, but Catholic has an increasing effect on
+Education.
+
+# Task 3: USA
+
+The USA dataset (state.x77) contains a matrix with 50 rows an 8 columns.
+The data is related to the 50 states of the United States of America and
+contains information about Population, Income, Illiteracy, Life
+Expectancy, Murder, High School graduates as well as Frost and Area.
+
+```{r}
+state.x77_dataframe <- as.data.frame(state.x77)
+head(state.x77,10)
+
+```
+
+## Multiple Linear Regression
+
+```{r}
+# put (absolute) correlations on the upper panels,
+# with size proportional to the correlations.
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+  par(usr = c(0, 1, 0, 1))
+  r <- abs(cor(x, y))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste0(prefix, txt)
+  if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = cex.cor * r, col=ifelse(r>0.5,2,1
+  ))
+}
+#put histograms on the diagonal 
+panel.hist <- function(x, ...)
+{
+  usr <- par("usr")
+  par(usr = c(usr[1:2], 0, 1.5) )
+  h <- hist(x, plot = FALSE)
+  breaks <- h$breaks; nB <- length(breaks)
+  y <- h$counts; y <- y/max(y)
+  rect(breaks[-nB], 0, breaks[-1], y, col = "cyan", ...)
+}
+
+pairs(state.x77_dataframe, lower.panel = panel.smooth,diag.panel = panel.hist, upper.panel = panel.cor)
+
+```
+
+### Filtering based on Multicolinearity and Estimate Significance
+
+In this step, we look at multicolinearity of the variables and decide which ones need to be removed in order to correctly fit a multiple linear regression model. We also check the statistical significance of the estimates for each variable and remove them if they are below the 0.05 significance level.
+
+```{r}
+# Model adaptation
+lm_model_1 <- lm(formula = Murder ~., data = state.x77_dataframe) 
+summary(lm_model_1)
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
+plot(lm_model_1)
+par(mfrow = c(1, 1))
+
+```
+
+Illiteracy and HS Grade were kicked out of the model, due to their
+correlation with Income. Kicking out HS grade results in eliminating its
+correlation with life expectancy.
+
+```{r}
+# Model adaption without Illiteracy and Life Exp
+lm_model_2 <- lm(formula = Murder ~. - Illiteracy -`HS Grad`, data = state.x77_dataframe) 
+summary(lm_model_2)
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
+plot(lm_model_2)
+par(mfrow = c(1, 1))
+pairs(state.x77_dataframe[, -c(3, 6)], lower.panel = panel.smooth,diag.panel = panel.hist, upper.panel = panel.cor)
+
+```
+
+The data shows that Income has **0.530396** statistical significance.
+Therefore, it will be kicked out in the model below.
+
+### MLR After Filtering
+
+```{r}
+# Model adaption without Illiteracy and Life Exp
+lm_model_3 <- lm(formula = Murder ~. - Illiteracy -`HS Grad` -Income , data = state.x77_dataframe) 
+summary(lm_model_3)
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
+plot(lm_model_2)
+par(mfrow = c(1, 1))
+
+```
+
+All values (Population, Life Exp, Frost and Area) demonstrate
+statistical significance.
+
+In the plot **"Residuals vs Leverage"** the point Alaska seems to have
+an influence on the graph. Therefore, a model can be calculated without
+the value, to identify if its happens to be a leverage point. If so, we
+analyse whether its a good or bad leverage point.
+
+### Leverage Point
+
+```{r}
+# kicked out: Alaska point 
+lm_model_4 <- lm(formula = Murder ~. - Illiteracy -`HS Grad` -Income, data = state.x77_dataframe[-2, ])
+summary(lm_model_4)
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
+plot(lm_model_4)
+par(mfrow = c(1, 1))
+```
+
+The plot "Residual vs Leverage" without the Alaska value is different
+compared to the plot that includes Alaska. Therefore, the Alaska value seems to
+be a bad leverage point as it displaces the red line in the leverage plot further away from being horizontal. The
+Multiple and Adjusted R-Squared did not change a lot. Therefore, this
+leverage point is not necessary for this model and can be kicked out.
+
+If we now take a look at the final residual plots, we can say that:
+
+-\> The model has no systematic error.
+
+-\> The error variance is the same for all observations (homoscedastic).
+
+-\> The components of the error term are uncorrelated.
+
+-\> The model error is normally distributed (even if there are to small
+"humps" nevertheless we would say that the model error is normally
+distributed.
+
+Therefore the fit of a linear model is correct.
+
+## Summary
+
+In this example the Murder rate in the US is explained in a multiple
+linear regression model through the variables Population, Life
+Expectancy, Frost and Area.
+
+The equation is stated as followed:
+
+$$ 
+Murder = 141.4 + 0.000143 * Population - 1.879 * Life Expectation - 0.02135 * Frost + 0.00001246 * Area 
+$$
+This means that if all the other variables are 0, Murder rate is about
+**141.4**. Mathematically, if Population increases by 1 unit, Murder
+rate increases by **0.000143** percentage points.
+
+If Life Expectancy increases by 1 unit, Murder rate decreases by
+**1.879** percentage points. If Frost is increased by 1 unit, Murder
+rate is decreased by **0.02135** percentage points and if Area is
+increased by 1 unit, Murder rate is increased by **0.00001246**
+percentage points. So Life Population and Area have a very small
+positive effect on Murder rate, but Life Expectancy and Frost have a
+negative effect on Murder rate. With a positive effect on the murder
+rate, we speak of an increase of this rate, whereas a negative effect
+stands for a decrease.
+
+# Task 4: Lake Huron
+
+LakeHuron is a time series dataset with annual measurements of the level of Lake Huron 1875-1972 (in feet).
+
+```{r }
+
+lake_levels <- as.numeric(LakeHuron)
+
+levels_result <- variable_analysis(lake_levels)
+
+print_nice(levels_result)
+
+plot(LakeHuron, main = "Lake Huron Water Levels (1875–1972)",
+     xlab = "Year", ylab = "Water Level", col = "blue", type = "l", xaxt = "n")
+
+axis(1, at = seq(1875, 1975, by = 5), labels = seq(1875, 1975, by = 5))
+```
+
+## Model selection
+
+From the time series plot above, there seems to be a decline in water levels as time progresses. However, we can't say if this decline is significant at this stage of analysis. There is no symmetrical periodic pattern in the data which is expected as the measurements were taken annually.
+
+Next, we check the correlation between time (years) vs. lake levels and do a correlation test to check its significance.
+
+```{r}
+
+time <- time(LakeHuron) # Extract the time (years)
+cor_time_levels <- cor(time, lake_levels)
+cor_time_levels
+```
+
+The correlation between time and lake levels is **`r cor_time_levels`** which suggests that as one variable increases, the other decreases i.e. as time increases, the lake levels decrease. This correlation coefficient is in line with our visual observation of lake levels decreasing over time. It is important to note that since this is time-series data, there is no actual real-world correlation between the two variables i.e. time doesn't affect the change in lake levels but rather the lake levels decreased over time.
+
+To check if this correlation coefficient is significant, we perform both a two-tailed and one-tailed correlation test. In the two-tailed test, our null hypothesis is that the correlation coefficient is 0 and the alternative hypothesis is that the correlation coefficient is not equal to 0. In the one-tailed test, our null hypothesis is that the correlation coefficient is greater than or equal to 0 while the alternative hypothesis is that it is less than 0. Both tests are done at a 95% confidence level.
+
+```{r}
+#two-tailed correlation test
+cor_test_two_tailed <- cor.test(time, lake_levels, alternative = "two.sided")
+print(cor_test_two_tailed)
+
+#one-tailed correlation test (less)
+cor_test_one_tailed <- cor.test(time, lake_levels, alternative = "less")
+print(cor_test_one_tailed)
+```
+
+The two-tailed test confirms that the correlation value is statistically significant with a p value of **3.545e-08**. The one-tailed test produces an even lower p-value of **1.773e-08** which tells us the negative correlation coefficient is indeed statistically significant.
+
+## Linear Regression Model
+
+Since there are only have 2 variables (time and lake levels) and lake levels seem to decline in a linear fashion, we fit a simple linear model to the data.
+
+```{r}
+model_lake_huron <- lm(LakeHuron ~ time(LakeHuron))
+summary(model_lake_huron)
+
+plot(LakeHuron, main = "Lake Huron Water Levels (1875–1972)",
+     xlab = "Year", ylab = "Water Level", col = "blue", type = "l")
+abline(model_lake_huron, col = "red", lwd = 1)
+```
+
+From the linear model we can extract the following information:
+
+-   **Residuals**: The residuals are the differences between observed levels and predicted levels in our regression model. They are are symmetric around the median which is very close to 0 and have a spread of about ±2.5.
+
+-   **Slope**: The slope is **-0.0242** which means that lake level decreases by 0.0242 feet per year on average with a standard error of 0.004036.
+
+-   **Multiple R squared**: 27.25% of the variability in lake levels is explained with the linear trend over time. This score is pretty bad and suggests that explaining lake levels with time (in a linear model) is not accurate.
+
+-   **F-statistic**: The F-statistic tells us if the model is a significantly better fit than no slope (a horizontal line). With a p-value of 3.545e-08, the linear relationship between time and lake levels is highly significant.
+
+### Residual Plots
+
+```{r}
+par(mfrow = c(2, 2))
+plot(model_lake_huron)
+par(mfrow = c(1, 1))
+
+```
+
+From the residuals vs. fitted plot, it is clear that the linear model is not a good fit for this dataset. There should ideally be no pattern in the residuals but we clearly see that there is a systematic pattern to them. The red smoothed line should be approximately flat around 0 and in our plot, it is u-curved which likely means there is a non-linear pattern in the data. The residuals also don't have constant variance, some are more widely spread while others are not. This suggests heteroscedasticity and that the model is not reliable.
+
+
+## Autoregression
+
+As discussed previously, the data only has two variables. To potentially find a model that could predict future lake levels more accurately than a simple linear regression, we look into autocorrelation of lake levels.
+
+Autocorrelation is the correlation of lake levels with its past lake levels. Specifically, it measures how strongly a variable correlate with itself at different lags (time intervals).
+
+To examine autocorrelation, we plot the autocorrelation function.
+
+```{r}
+par(mfrow = c(1,2))
+acf(LakeHuron)
+curve(acf(LakeHuron)$acf[2]^x, add=TRUE, col=3, lwd=2)
+par(mfrow = c(1,1))
+```
+
+The acf curve is exponential which means that autocorrelation is high in the beginning (approximately 0.9) and steadily decreases from year to year. Basically, the lake levels correlate more with the levels of most recent past years. As time goes by, the autocorrelation drops which means that past lake levels (approximately beyond 10 lags) have less influence on current levels.
+
+```{r}
+par(mfrow = c(1, 2))
+acf(LakeHuron)
+curve(acf(LakeHuron)$acf[2]^x, add=TRUE, col=3, lwd=2)
+par(mfrow = c(1, 1))
+```
+
+An autoregression model where we just consider the previous value (known as AR(1)) has the formula:
+
+$$
+X_t = \phi_1 X_{t-1} + \epsilon_t
+$$
+
+-   $X_t$: lake level measured at time $t$.
+-   $\phi_1$: The coefficient for the influence of the previous lake level value ($X_{t-1}$) on the current one ($X_t$).
+-   $\epsilon_t$: Random error ($\epsilon_t \sim N(0, \sigma^2)$).
+
+```{r}
+
+# AR(1) linear model
+
+ar_lake_huron <-  lm(LakeHuron[-1] ~ LakeHuron[-length(LakeHuron)])
+
+plot(LakeHuron[-length(LakeHuron)],LakeHuron[-1])
+abline(ar_lake_huron, col=3, lwd=2)
+
+summary(ar_lake_huron)
+```
+
+There is a clear linear relationship and positive correlation between the current lake level $X_{t}$ and last year lake level $X_{t-1}$. The R-squared value at 0.7037 indicates that 70.37% of variation in lake level is explained by the past year lake level. The AR(1) coefficient $\phi_1$ is 0.83641 indicating that around 83.64% of the current lake level can be explained by the last year's lake level. 
+
+Overall, the AR(1) model seems to be better suited than a simple linear regression with time/lake level.
+
+#### Residual diagnostic plots
+
+```{r}
+par(mfrow = c(1, 2))
+# Residual diagnostic plots
+plot(ar_lake_huron, 1:2)
+acf(residuals(ar_lake_huron))
+par(mfrow = c(1, 1))
+```
+
+The Residuals vs. Fitted plot shows no trend for the residuals and almost a perfect fitted horizontal line at 0. This indicates that there is no pattern for the residuals and that the AR model is a good fit. Compared to the residuals plot of our simple linear regression, it is clear that the AR model is the correct choice for the time series dataset LakeHuron.
+
+# Task 5: Pima Indians
+
+Women with Pima Indian heritage were tested for diabetes according to WHO criteria. The dataset has 532 entries.
+
+## EDA
+
+In this task, we're fitting a logistic  regression model to explain diabetes (variable "type") using independent variables age, npreg, bmi, glu, bp, ped and skin. 
+
+Before that, we must check if the conditions for a logistic regression model are satisfied. 
+
+```{r}
+data("Pima.tr", package = "MASS")
+# remove 'type' before applying pairs() becaus it is not numerical
+Pima_numeric <- Pima.tr[, sapply(Pima.tr, is.numeric)]
+pairs(Pima_numeric, lower.panel = panel.smooth, diag.panel = panel.hist, upper.panel = panel.cor)
+
+```
+
+Key conditions:
+
+1. Binary dependent variable: Logistic regression is a suitable model because our dependent variable i.e. diabetes has only two possible outcomes "yes" and "no".
+
+2. Multicolinearity: the independent variables must not be correlated with each other. We check this using a correlation matrix and residual plots.
+
+Looking at the correlation matrix above, we can clearly identify a strong positive (r > 0.5) correlaiton between: "bmi/skin" and "npreg/age". 
+
+The strong positive correlation between "bmi" and "skin" is not surprising as "skin" is a measure of triceps skin fold thickness in milimiters. The correlation is also visible in the steep correlation line on the scatterplot. We decided to remove "skin" from the rest of the analysis as it appears to have more outliers than BMI and we percieved BMI as a more accurate measurement of weight and height compared to "skin" which may play a role in explaining diabetes.
+
+Regarding the positive correlation between variables "npreg" (number of pregnancies) and "age", we decided to remove "age" from the rest of the analysis as it showed a mild positive correlation with both "bp" (r = 0.39) and "glu" (r = 34) while "npreg" didn't have mild correlations with any other variables.
+
+3. No extreme outliers as logistic regression is sensitive to extreme values. This can be checked visually on histograms and boxplots or by looking at Cook's distance.
+
+At this stage, there does not appear to be any extreme/concerning behavior of any remaining variables in the histograms above. We will confirm this by looking at Cook's distance in a later stage.
+
+4. The binary choices (yes/no) in the "type" variable should be approximately balanced.
+
+```{r}
+table(Pima.tr$type)
+```
+Looking at the balance between yes/no, we see that 34% of women had diabetes while 66% did not. This ratio is still acceptable to continue with fitting a logistic regression model but we can keep this information in the back of our mind in case our model shows strong favoring of predicting "no". In this case, weighed logistic regression is a potential fix (assigning more weight to "yes" because it's the minority).
+
+## Logistic Regression Model
+
+```{r}
+model_pima <- glm(type ~ npreg + bmi + glu + bp + ped, data = Pima.tr, family = binomial)
+
+summary(model_pima)
+```
+Looking at the p-values from the model, we can deduce that "bp" is not a relevant predictor for diabetes (p = 0.79416). Hence, "bp" is removed from the rest of the analysis. Hence, the logistic regression equation (with variables rounded to 3 decimals) is as follows: 
+
+$$
+logit(type) = \log \left( \frac{P(Y = 1)}{P(Y = 0)} \right) = -9.511 + 0.170 \cdot \text{npreg} + 0.079 \cdot \text{bmi} + 0.034 \cdot \text{glu} + 1.761 \cdot \text{ped}
+$$
+
+```{r}
+model_pima_no_bp <- glm(type ~ npreg + bmi + glu + ped, data = Pima.tr, family = binomial)
+
+summary(model_pima_no_bp)
+```
+
+
+Plasma glucose concentration ("glu") is a highly statistically significant predictor in the model with a p value of **9.56e-08 **. The estimate for "glu" is **0.034749** meaning that if plasma glucose increases by 1-unit, the logarithmic odds of having diabetes increase by **0.034749**. If we calculate this in terms of odds ratio we get that $exp(0.034749) \approx 1.035$, so 1-unit increase in "glu" increases odds of having diabetes by approximately 3.5% (if all other variables are constant).
+
+An important predictor with a high estimate value and statistical significance (**p = 0.00696**) is "ped" or the pedigree function (basically the genetic risk factor based on family history of a diabetes). The estimate for "ped" is **1.764673** meaning that log odds for diabetes increase by this value for a 1-unit increase in "ped". The odds ratio is $exp(1.764673) \approx 5.840$ which shows us that the odds of having diabetes increase by around 5.8 times for a 1-unit increase in "ped". We can conclude that family history of diabetes is a strong predictor for having diabetes.
+
+```{r}
+format_glm_output <- function(model) {
+  coef_df <- as.data.frame(summary(model)$coefficients)
+  exp_values <- exp(coef_df$Estimate) 
+
+  result <- data.frame(
+    Predictor = rownames(coef_df),
+    Estimate = round(coef_df$Estimate, 4),
+    Exp_Estimate = round(exp_values, 4) 
+  )
+  print(result, row.names = FALSE)
+}
+
+format_glm_output(model_pima_no_bp)
+
+```
+
+The number of pregnancies ("npreg") is also a statistically sigificant predictor (p = 0.00133) and odds ratio of $exp(0.173367) \approx 1.1893$ which means that one pregnancy increases the odds of having diabetes by approximately 1.19 times or by about 19%. 
+
+## Cook's Distance
+
+As the threshold we set the typical 4/n and looked at the remaining variables to make sure there are no extreme outliers or mistakes in the data which could be skewing the model.
+
+```{r}
+cooks_values <- cooks.distance(model_pima_no_bp)
+
+# Identify influential points (rule of thumb: Cook's D > 4/n)
+threshold <- 4 / nrow(Pima.tr)
+influential_points <- which(cooks_values > threshold)
+Pima.tr[influential_points, ]
+```
+
+Cook's distance identified 16 possible outliers but no value was unusually high (as to be impossible or a clear mistake). Some women had 12 or 13 children and some had high glucose levels but all within the expected range. Since we didn't identify any unexpected values, we decided to proceed without removing anything.
+
+## Receiver Operating Characteristic (ROC)
+
+In this final part of the analysis, we use ROC to evaluate the performance of the logistic regression model.
+
+```{r}
+#install.packages("pROC")
+library(pROC)
+
+# Predict probabilities
+Pima.tr$predicted_prob <- predict(model_pima_no_bp, type = "response")
+
+# Compute ROC curve
+roc_curve <- roc(Pima.tr$type, Pima.tr$predicted_prob)
+
+# Plot ROC curve
+plot(roc_curve, col = "blue", main = "ROC Curve for Diabetes Prediction")
+
+# Compute AUC
+auc_value <- auc(roc_curve)
+auc_value
+```
+
+The blue ROC-curve shows our data compared to the diagonal gray line which is the baseline case (if the data was random). The closer the ROC-curve to the corner, the more accurate is our model for predicting diabetes. Vice versa, if the ROC curve is closer to the diagonal baseline, the less accurate our model for making predictions. 
+
+To get a numerical representation of the curve, we can calculate the AUC or area under curve which tells us how accurate our model is at correctly recognizing a true positives and true negatives. Our model would be perfect if it had an AUC score of 1.
+
+Our **AUC score o 0.8415** is therefore very good and suggests that our model correctly identifies between diabetic and non-diabetic patients about 84.15% of the time.
+
+### Confusion matrix
+
+```{r}
+# predicted probabilities to class labels (Threshold = 0.5)
+predictions <- ifelse(Pima.tr$predicted_prob > 0.5, "Yes", "No")
+predictions <- factor(predictions, levels = levels(Pima.tr$type))
+
+# confusion matrix
+conf_matrix <- table(Predicted = predictions, Actual = Pima.tr$type)
+print(conf_matrix)
+
+TP <- conf_matrix["Yes", "Yes"]
+FP <- conf_matrix["Yes", "No"]
+TN <- conf_matrix["No", "No"]
+FN <- conf_matrix["No", "Yes"]
+
+cat("\nConfusion Matrix \n")
+cat("TP:", TP, "\n")
+cat("FP:", FP, "\n")
+cat("TN:", TN, "\n")
+cat("FN:", FN, "\n")
+```
+
+Looking at the confusion matrix, we identify 39 true positives and 120 true negatives compared with 29 false negatives (women who had diabetes but weren't correctly predicted) and 12 false positives. 
+
+There is a bit of concern with the false negatives as the rate of false negatives $FNR = FN/ (FN+TP) = 0.4264706$ means that approximately 42.7% of women who had diabetes would be incorrectly predicted as non-diabetic by our model (and around 57.3% diabetic women would be correctly identified). What are some possible reasons for this?
+
+If we look back at our examination of requirements for the logistic regression model, we found that the data contained more participants without diabetes (66% "No"). This meant that from the beginning, the model was slightly biased towards "No". From the confusion matrix and false negative rate, we see that our model is moderately good at recognizing diabetic women (**TPR = 57.3%**) and very good at recognizing non-diabetics with a false positive rate of $FPR = FP/(FP+TN) = 0.0909$ or just around 9.1%.
+
+In conclusion, while the model is good at correctly predicting non-diabetics, it has a moderate accuracy for identifying diabetics. A possible improvement would be using weighed logistic regression to balance out the imbalance between the number of "yes" and "no" responses in the "type" variable
+
+
+

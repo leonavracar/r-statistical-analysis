@@ -1,0 +1,1045 @@
+---
+title: "Exploratory Data Analysis"
+author: "Leona Vracar"
+date: "2025-01-12"
+output:
+  html_document:
+    toc: true           # Enables Table of Contents (ToC)
+    toc_depth: 3        # Defines ToC depth (1=Main, 2=Subsections, etc.)
+    toc_float: true     # Makes ToC float on the side (for easy navigation)
+    number_sections: true  # Automatically numbers sections
+    code_folding: hide  # Collapses R code chunks by default
+    theme: readable     # Sets a readable theme for better visuals
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r EDA Functions}
+# Function for analysis of variables
+variable_analysis <- function(vect) {
+  result <- list(
+    mean = mean(vect),
+    median = median(vect),
+    variance = var(vect),
+    sd = sd(vect),
+    IQR = IQR(vect),
+    min = min(vect),
+    max = max(vect),
+    range = max(vect) - min(vect)
+  )
+  return(result)
+}
+
+# Just for nicer display in markdown 
+# Execute this on a _result variable (output of variable_analysis(swiss$Fertility)) in a code block to get the  nice table in text)
+print_nice <- function(result) {
+  # put stats in tble
+  table <- as.data.frame(t(as.data.frame(result)))
+  colnames(table) <- "Value"  # value is 2nd column
+  table <- round(table, 4)  
+  
+  # Print, left align and title
+  knitr::kable(table, caption = "Summary Statistics", align = c("l", "r"))
+}
+
+```
+
+```{r plots}
+# Function for 4 plots: box, histo, QQ, ECDF
+plots_function <- function(input_vect, var_name = "default") {
+  # mfrow sets 2x2 layout and mar sets plot margins
+  par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1)) 
+  
+  #Boxplot
+  boxplot(
+    input_vect,
+    main = paste("Boxplot of", var_name),
+    col = "lightgreen",
+    horizontal = TRUE 
+  )
+  
+  # Histogram
+  hist(
+    input_vect,
+    main = paste("Histogram of", var_name),
+    xlab = var_name,
+    col = "lightblue",
+    freq = FALSE
+  )
+  lines(density(input_vect), col = "red", lwd = 2)  #density curve
+  
+  # Q-Q 
+  qqnorm(
+    input_vect,
+    main = paste("Q-Q Plot of", var_name),
+    col = "blue"
+  )
+  qqline(input_vect, col = "red", lwd = 2)  
+  
+  # ECDF
+  plot(
+    ecdf(input_vect),
+    main = paste("ECDF of", var_name),
+    xlab = var_name,
+    ylab = "ECDF"
+  )
+  
+  # Reset layout back to normal 1x1
+  par(mfrow = c(1, 1))
+}
+
+```
+
+```{r outliers}
+# Function for outliers check using 1.5 × IQR 
+calculate_outliers <- function(vect) {
+  Q1 <- quantile(vect, 0.25)
+  Q3 <- quantile(vect, 0.75)
+  IQR <- Q3 - Q1
+  result <- list(
+    low_fence = Q1 - 1.5 * IQR,
+    up_fence = Q3 + 1.5 * IQR
+  )
+  return(result)
+}
+  
+```
+
+```{r scatter}
+# function for scatterplot matrix
+scatter_matrix <- function(data, main_title = "Scatterplot Matrix", point_color = "darkblue", point_size = 0.8) {
+  pairs(
+    data,
+    main = main_title,
+    col = point_color,
+    cex = point_size
+  )
+}
+```
+
+```{r correlation}
+# Function for correlation matrix
+cor_matrix <- function(data) {
+  # Compute cor matrix
+  result <- cor(data, use = "pairwise.complete.obs")
+  # Print rounded matrix
+  print(round(result, 2))
+  
+  # make heatmap with dendrogram/colors
+  heatmap(
+    result, 
+    main = "Correlation Matrix", 
+    col = colorRampPalette(c("blue", "white", "red"))(20)
+  )
+}
+```
+
+# EDA: Dataset "swiss"
+
+The dataset swiss contains 6 variables (columns) and 47 rows
+representing 47 French-spaking provinces of Switzerland at 1888.
+
+The dataset provides information about socioeconomic indicators and
+fertility for each province.
+
+```{r swiss}
+data(swiss)
+head(swiss)
+```
+
+## EDA of individual variables
+
+In this section, we perform EDA on variables "Fertility", "Agriculture",
+"Education", "Catholic" and "Infant Mortality".
+
+```{r EDA swiss all variables}
+
+fertility_result <- variable_analysis(swiss$Fertility)
+agriculture_result <- variable_analysis(swiss$Agriculture)
+education_result <- variable_analysis(swiss$Education)
+catholic_result <- variable_analysis(swiss$Catholic)
+infant_result <- variable_analysis(swiss$Infant.Mortality)
+```
+
+### Fertility
+
+```{r}
+print_nice(fertility_result)
+```
+
+**Location**: The variable Fertility has a mean of
+**`r round(fertility_result$mean, 2)`** and a median of
+**`r round(fertility_result$median, 2)`** suggesting that the data may
+be symmetric and that there are likely no (or just a few) outliers that
+skew the dateset (otherwise the mean as a non-robust measure would not
+so closely match the median).
+
+**Spread/variation**: The data has a moderate spread with a SD of
+**`r round(fertility_result$sd, 2)`** which is small relative to the
+mean of **`r round(fertility_result$mean, 2)`** and overall range. The
+IQR is **`r round(fertility_result$IQR, 2)`** which is small relative to
+the range is **`r round(fertility_result$sd, 2)`** suggesting that the
+middle 50% of the data points are in a narrow range around the median
+(also mean due to mean and median being almost identical).
+
+```{r}
+# Call the function
+plots_function(swiss$Fertility, var_name = "Fertility")
+```
+
+**Boxplot**: In the boxplot, we see **two** potential outliers that lie
+beyond the central \~95% of the data. However, these two points may not
+necessarily be outliers since the data is left-skewed (longer whiskers
+on the left and the location of the median in the left half of the box
+suggest this skew).
+
+**Histogram**: From the histogram we clearly see the data is not
+symetrical, is **left-skewed** and unimodal with a single peak. This
+means that there are potential outliers in the left tail. Most of the
+data is concentrated around one SD above and below the mean (two largest
+bars are at 60-80).
+
+**Q-Q Plot**: The left-skew caused by potential outliers is also visible
+in the Q-Q plot as there are data points deviating from the qqline
+(normal distribution) at the left end of the plot.
+
+**ECDF**: The steep slope of the ECDF plot around 0.5 (which aligns with
+the median) also shows that most data-points are concentrated around
+this value. The curve has a left tail, again due to the two values
+outside the 95% of the data, one of which is the minimum value of the
+range at **`r round(fertility_result$min, 2)`**.
+
+In the context of the dataset, it seems that fertility was mostly
+moderate to high with a few extremes in the lower end of the
+distribution that could be worth looking into, especially in correlation
+with other variables.
+
+### Agriculture
+
+```{r}
+print_nice(agriculture_result)
+```
+
+**Location**: The mean at **`r round(agriculture_result$mean, 2)`** and
+median at **`r round(agriculture_result$median, 2)`** are roughly close
+together suggesting that the data is close to symmetrical.
+
+**Spread/Variation**: The data has a wider spread compared to fertility
+with a SD of **`r round(agriculture_result$sd, 2)`** and a wide range of
+**`r round(agriculture_result$range, 2)`** from the min value at
+**`r round(agriculture_result$min, 2)`** to max value at
+**`r round(agriculture_result$max, 2)`**. The middle 50% of data or the
+IQR is at **`r round(agriculture_result$IQR, 2)`**, suggesting that the
+middle 50% of data is relatively concentrated but with more spread out
+values beyond the IQR indicated by the SD of
+**`r round(agriculture_result$sd, 2)`**.
+
+**Skewness**: While the mean and median are pretty close together, the
+mean is smaller than the median meaning that there might be a left skew
+in the data pulling the mean slightly down from the central value.
+
+```{r}
+plots_function(swiss$Agriculture, var_name = "Agriculture")
+```
+
+**Boxplot**: The length of the left whisker is longer, suggesting a
+slight left skew. There are no visible outliers in the box plot.
+
+**Histogram**: The slight left skew can also be seen in the histogram.
+The dataset is unimodal and more widely spread out compared to
+fertility.
+
+**Q-Q Plot**: The data seems to be very close to a normal distribution,
+with most points on the qq-line and a few deviations on the left and
+right end.
+
+**ECDF**: The ECDF-curve has a moderately steep slope, suggesting a
+wider range.
+
+In the context of the dataset, the lowest value for agriculture
+**`r round(agriculture_result$min, 2)`** corresponds to the province "V.
+De Geneve" which is to be expected as this was an urban center with
+likely little to no agricultural activities.
+
+#### Extra: Shapiro-Wilks test to check normality
+
+For the null hypothesis, we assume data is approximately normally
+distributed, while the alternative hypothesis is that data is not
+normally distributed.
+
+```{r}
+shapiro.test(swiss$Agriculture)
+```
+
+With a p-value of 0.193, we fail to reject the null hypothesis.
+Agriculture is from a normal distribution.
+
+### Education
+
+```{r}
+print_nice(education_result)
+```
+
+**Location**: The mean at **`r round(education_result$mean, 2)`** is
+above the median at **`r round(education_result$median, 2)`** suggesting
+data points which are pulling the mean up from the central value.
+
+**Spread/Variation**: The IQR tells us that 50% of data is in the range
+of IQR = **`r round(education_result$IQR, 2)`**. Such a tight IQR
+relative to the min (**`r round(education_result$min, 2)`**) and max
+(**`r round(education_result$max, 2)`**) values suggest that half the
+data is very tightly clustered. The SD of
+**`r round(education_result$sd, 2)`** is larger than the IQR meaning the
+SD is inflated by a few larger values.
+
+**Skewness**: As stated, both the mean and SD (as non-robust measures)
+are inflated upwards compared to the median and IQR (their robust
+counterparts) which suggests a right skew or a few large outliers.
+
+```{r}
+plots_function(swiss$Education, var_name = "Education")
+```
+
+**Boxplot**: The boxplot reflects the tight clustering of the data in
+the IQR (the box) as well as a right skew due to the longer right
+whisker and four outliers.
+
+**Histogram**: From the density curve, the data looks bimodal with the
+first peak at the mean and a second one around 30.
+
+**Q-Q Plot**: The higher values deviating from the qqline are also
+visible on the Q-Q plot. While we only identified 4 in the boxplot,
+there seem to be several more (6-7) visible in the Q-Q plot. The data
+does not follow a normal distribution.
+
+**ECDF**: The ECDF is interesting as it shows a steep curve between \~1
+and \~15 on the x-axis, with \~15 corresponding to 0.8 on the y-axis,
+meaning that \~80% of data is in this range (low variability). The long
+tails at \~20, \~30 and \~50 on the x-axis are extreme values causing
+the right-skew. In the context of the dataset, this means that most
+people (in 1888) had a low-level of education with just a few having
+higher levels. The max value of **`r round(education_result$max, 2)`**
+matches the min value for agriculture and corresponds to the province
+"V. De Geneve" which likely had a more educated population due to being
+an urban center.
+
+### Catholic
+
+```{r}
+print_nice(catholic_result)
+```
+
+**Location**: The mean at **`r round(catholic_result$mean, 2)`** and
+median at **`r round(catholic_result$median, 2)`** differ significantly
+which means the data is not symmetrical. Since the mean \>\> median,
+there are likely several extreme data points in the higher end of the
+distribution affecting the mean.
+
+**Spread/Variation**: The IQR as a robust measure at
+**`r round(catholic_result$IQR, 2)`** and the high SD as a non-robust
+one at **`r round(catholic_result$sd, 2)`** signify a broad distribution
+and highly variable data. This is further confirmed by broad range
+(**`r round(catholic_result$range, 2)`**) between min at
+**`r round(catholic_result$min, 2)`** and max at
+**`r round(catholic_result$max, 2)`**.
+
+**Skewness**: The data is likely bimodal or right-skewed due to the mean
+being significantly higher than the median.
+
+```{r}
+plots_function(swiss$Catholic, var_name = "Catholic")
+```
+
+**Boxplot**: The median is very close to the lower quartile (Q1) in the
+box meaning that most data points are likely in the lower range. There
+are no visual outliers but the distribution is very stretched out and
+the right whisker together with the position of the median suggest a
+right skew.
+
+**Histogram**: The histogram has 2 peaks i.e. a bimodal distribution.
+Very few values are in the central part of the range (between 30 and
+70). The density curve may be a bit misleading because it doesn't show
+the sharp peaks visible in the bars.
+
+**Q-Q Plot**: The data is clearly bimodal. The tail in the low end
+(negative quantiles on the x-axis) is below the normalcy line which
+suggests smaller values compared to a normal distribution. Most data
+points are in this lower end with the median (at 0 quantile on the
+x-axis) being significantly below the expected median value for a normal
+distribution. The higher end of the data (between \~0.5-2 quantiles on
+x-axis) show the higher end of the bimodal distribution.
+
+**ECDF**: This plot confirms that the data is bimodal with most values
+(\~0.6 on y-axis or 60%) being in a narrow lower range, a few dispersed
+values in the mid-range and another distinct peak (\~0.75 on y-axis or
+at 75%) in the high range.
+
+In the context of the dataset, the bimodal distribution means that most
+provinces were either completely non-Christian or close to 100%
+Christian. However, we do not have the data about the population size of
+each province so we cannot make any statements about the the absolute
+number of Christians or non-Christians per province. For example, the
+max value of **`r round(catholic_result$max, 2)`** corresponding to the
+province Herens makes it seem like 100% of the inhabitants are Christian
+but there may only be a very small population living in this province.
+
+### Infant mortality
+
+```{r}
+print_nice(infant_result)
+```
+
+**Location**: The mean (**`r round(infant_result$mean, 2)`**) and median
+(**`r round(infant_result$mean, 2)`**) are almost identical, suggesting
+symmetrical data with little to no outliers.
+
+**Spread/Variation**: Both the SD at **`r round(infant_result$sd, 2)`**
+and IQR at **`r round(infant_result$IQR, 2)`** suggest low variability
+of data with most data points centered around the mean/median. However,
+since SD is slightly lower than the IQR and the data ranges from
+**`r round(infant_result$min, 2)`** (min) to
+**`r round(infant_result$max, 2)`** (max), there may be some low values
+present that slightly push the SD down.
+
+**Skewness**: No indication of skewness.
+
+```{r}
+plots_function(swiss$Infant.Mortality, var_name = "Infant Mortality")
+```
+
+**Boxplot**: The boxplot shows an outlier which is the min value of
+**`r round(infant_result$min, 2)`** corresponding to the province La
+Vallee.
+
+**Checking the min value as potential outlier**
+
+```{r}
+infant_outliers <- calculate_outliers(swiss$Infant.Mortality)
+infant_outliers
+```
+
+Using the Q1 - IQR \* 1.5 (lower fence at
+**`r round(infant_outliers$low_fence,  2)`**) and Q3 + IQR \* 1.5 (upper
+fence at **`r round(infant_outliers$up_fence, 2)`**), we see that the
+min value lies outside this range and is technically an outlier.
+However, this entry is worth examining further as a data point with some
+additional significance (also in relation to other variables).
+
+**Histogram**: The data shows a normal distribution except for the
+aforementioned outlier/min value.
+
+**Q-Q Plot**: This plot also confirms normalcy of the data as the
+individual points are on the qqline.
+
+**ECDF**: Also shows normal distribution of data excluding the min
+value.
+
+## Correlation between variables
+
+**Scatterplot Matrix**
+
+```{r}
+# Selecting variables (making a subset of those that we're interested in)
+swiss_subset <- swiss[, c("Fertility", "Agriculture", "Education", "Catholic", "Infant.Mortality")]
+
+# Scatterplot matrix
+scatter_matrix(swiss_subset)
+```
+
+The scatterplot matrix shows visible patterns between some variables:
+
+1.  Fertility and Agriculture seem to have a positive correlation.
+2.  Fertility and Education seem to have a negative correlation.
+3.  Infant mortality and Fertility seem to have a positive correlation.
+4.  Agriculture and Education seem to have a negative correlation.
+
+To examine these correlations further, we look at a correlation matrix
+in the next step.
+
+**Correlation Matrix**
+
+```{r}
+cor_matrix(swiss_subset)
+```
+
+The correlation matrix confirms the correlations we already identified
+and additionally shows a positive correlation between Fertility and
+Catholic (r = 0.46).
+
+Some possible conclusions from the correlations are:
+
+**Fertility, Agriculture and Education**: Swiss provinces with higher
+rates of agricultural activity had a higher fertility rate while
+education and fertility were negatively correlated (r = -0.66). In
+addition, education and agriculture were strongly negatively correlated
+(r = -0.64), suggesting that education levels were lower in rural areas
+and higher in urban areas. These findings are in line with common
+demographic patterns where lower birth rates are associated with higher
+education levels.
+
+**Fertility and Infant Mortality**: Higher fertility rates also have a
+positive correlation with infant mortality (r = 0.46). One (speculative)
+reason for this may be that having more children automatically leads to
+more children not surviving into adulthood. We could also speculate,
+that since fertility is higher in rural areas i.e. positively correlated
+with agriculture, it is possible that in 1888, medical care was not
+available which lead to more infant deaths.
+
+**Catholic**: One somewhat peculiar finding was the positive correlation
+between Catholic and Fertility (r = 0.46) suggesting that Catholic
+provinces had higher fertility rates. Catholicism rates also had a
+positive correlation with Agriculture (r = 0.40) suggesting that more
+agricultural communities were more religious and had a higher rate of
+fertility.
+
+# EDA: Dataset "state.x77"
+
+The state.x77 dataset includes various statistics (population, income,
+illiteracy etc.) from the 1970s for each USA-state.
+
+```{r}
+state.x77_dataframe <- as.data.frame(state.x77)
+head(state.x77_dataframe, 7)
+```
+
+## EDA of individual variables
+
+This section explores the variables "Population", "Income",
+"Illiteracy", "Life.Exp", "Murder", "HS Grade" and "Frost".
+
+```{r}
+pop_result <- variable_analysis(state.x77_dataframe$Population)
+inc_result <- variable_analysis(state.x77_dataframe$Income)
+illi_result <- variable_analysis(state.x77_dataframe$Illiteracy)
+life_exp_result <- variable_analysis(state.x77_dataframe$`Life Exp`)
+murder_result <- variable_analysis(state.x77_dataframe$Murder)
+hs_grad_result <- variable_analysis(state.x77_dataframe$`HS Grad`)
+frost_result <- variable_analysis(state.x77_dataframe$Frost)
+```
+
+### Population
+
+```{r}
+print_nice(pop_result)
+```
+
+**Location**: The mean at **`r round(pop_result$mean,  2)`** and median
+at **`r round(pop_result$median,  2)`** diverge significantly which
+suggests the data is not symmetrical. Median is robust and hence
+appropriate as the locus for this dataset.
+
+**Spread**: The data has a high variance
+**`r round(pop_result$variance,  2)`** and standard deviation
+**`r round(pop_result$sd,  2)`** which means the population numbers are
+widely different across states. The IQR of 3889 means that the middle
+50% of states have populations in this range.
+
+**Skewness**: The data is skewed to the right since mean \>\> median.
+
+```{r}
+plots_function(state.x77_dataframe$Population, var_name = "Population")
+```
+
+**Boxplot**: Outliers are visible beyond the right whisker, 3 potential
+outliers and 2 definite ones. The elongated right whisker also suggests
+a right skew.
+
+**Histogram**: The right-skew is clearly visible in the histogram. Most
+states have a population up to 7000, while there are a few ones with
+larger population numbers between 10 000 and 25 000. It could be argued
+that the data is unimodal with several outliers or the outliers could be
+grouped together in a cluster in a bimodal dataset since population is
+(unsurprisingly) higher in more urban states like California and New
+York.
+
+**Q-Q Plot**: The dataset deviates from a normal distribution,
+especially at the upper end. Again, the deviation is caused by the
+outliers.
+
+**ECDF**: The ECDF plot shows a steep rise in the beginning, meaning
+many states have low populations. The more elongated points at the right
+of the plot are the few states with large populations.
+
+### Income
+
+```{r}
+print_nice(inc_result)
+```
+
+**Location**: The median at **`r round(inc_result$median,  2)`** and
+mean at **`r round(inc_result$mean,  2)`** are close together, hence the
+data is likely symmetrical. From the plots below, there seems to be a
+single potential outlier in the higher range of incomes but the median
+is still a fitting measure of central tendency for this variable.
+
+**Spread**: The per capita income has a moderate spread with a sd of
+**`r round(inc_result$sd,  2)`**. The robust measures: range of
+**`r round(inc_result$range,  2)`** and IQR of
+**`r round(inc_result$IQR,  2)`**.
+
+**Skewness**: The data approximately follows a normal distribution.
+
+```{r}
+plots_function(state.x77_dataframe$Income, var_name = "Income")
+```
+
+**Boxplot**: A single outlier is visible in the high range. The central
+50% of per-capita incomes are between 4000 and 5000 USD.
+
+**Histogram**: The data is unimodal and approximately normally
+distributed.
+
+**Q-Q Plot**: The normal distribution is also confirmed by the Q-Q plot.
+
+**ECDF**: Smooth, S-shaped curve, indicating a gradual increase in
+values. Most incomes are between \~3500 and \~5000.
+
+### Illiteracy
+
+```{r}
+print_nice(illi_result)
+```
+
+**Location**: Both the mean at **`r round(illi_result$mean,  2)`** and
+the median at **`r round(illi_result$median,  2)`** are low and pretty
+close together without any outliers. While the mean is appropriate here
+as a measure of central tendency, it is slightly higher than the median,
+potentially indicating a slight right-skew.
+
+**Spread**: Considering that the illiteracy rate is a percentage of the
+population of the respective state (and hence could technically take up
+values 0-100%), the data has low variability and a tight spread. The min
+at **`r round(illi_result$mean,  2)`** and max at
+**`r round(illi_result$max,  2)`** confirm this. At most, the illiteracy
+rate is at 2.8% which is indicative of the fact that the US population
+across all states was highly literate in the 1970s.
+
+**Skewness**: Illiteracy is slightly right-skewed, meaning most states
+had low illiteracy, but a few had significantly higher rates as visible
+in the right whisker of the boxplot and the density curve of the
+histogram. However, it is crucial to interpret the data in its context
+here. Considering that illiteracy could take up values between 0-100%
+and the right-skew is caused by a few values between \~ 1.6% illiteracy
+(displayed by the right whisker in the box plot) and the max value of
+2.8%, illiteracy still remains very low overall.
+
+```{r}
+plots_function(state.x77_dataframe$Illiteracy, var_name = "Illiteracy")
+```
+
+**Boxplot**: There are no extreme outliers, suggesting no states with
+high illiteracy rates.
+
+**Histogram**: The highest bar contains values between 0.5 and 1%. The
+data has a right skew and is unimodal.
+
+**Q-Q Plot**: The data is approximately normally distributed with a
+slight deviation in the bottom range.
+
+**ECDF**: Around 60% of states have illiteracy below 1.5%, as seen by
+the more steep rise before 1.5.
+
+### Life Expectancy
+
+```{r}
+print_nice(life_exp_result)
+```
+
+**Location**: The mean at **`r round(life_exp_result$mean,  2)`** and
+median at **`r round(life_exp_result$median,  2)`** are almost identical
+which suggests highly symmetrical data.
+
+**Spread**: The standard deviation at
+**`r round(life_exp_result$sd,  2)`** is \~23% of the total range
+(**`r round(life_exp_result$range,  2)`**) suggesting a tight to
+moderate spread relative to the range. The IQR of
+**`r round(life_exp_result$IQR,  2)`** as a robust measure confirms
+this. In the context of life expectancy, most values are concentrated
+around the mean.
+
+**Skewness**: Data appears to be symmetrical with no outliers nor
+skewness.
+
+```{r}
+plots_function(state.x77_dataframe$`Life Exp`, var_name = "Life Exp")
+```
+
+**Boxplot**: No outliers and approximately symmetrical data.
+
+**Histogram**: Data appears to be unimodal and approximately normally
+distributed. Three tallest bars are in the 70-73 range, which sum up to
+\~75% on the density on the y-axis. Hence, a large majority of states
+have life expectancies in this range.
+
+**Q-Q Plot**: This plot confirms that life expectancy follows a normal
+distribution with only a few minor deviations at the upper/lower end.
+
+**ECDF**: Pretty smooth curve which gets steeper at LifeExp = 70 and
+then flattens out again around LifeExp = 73. This confirms that the top
+\~75% of data is located in this range.
+
+### Murder Rate
+
+```{r}
+print_nice(murder_result)
+```
+
+**Location**: The mean (**`r round(murder_result$mean,  2)`**) is
+slightly higher than the median
+(**`r round(murder_result$median,  2)`**), indicating mild right
+skewness. The mean may still be appropriate as the central tendency of
+the data.
+
+**Spread**: The range (**`r round(murder_result$range,  2)`**) is pretty
+large relative to the central tendency, suggesting a wider spread of
+data.
+
+**Skewness**: As visible in the plots, the data is not skewed but
+bimodal with a second peak which is displacing the mean upwards compared
+to the median.
+
+```{r}
+plots_function(state.x77_dataframe$Murder, var_name = "Murder")
+```
+
+**Boxplot**: No visible outliers and approximately symmetrical data. The
+right whisker is longer which means that more values are found in the
+upper 25% of data compared to the lowest 25%.
+
+**Histogram**: There are two clear peaks in the histogram, one between
+Murder \~3 to \~6.5 and a second one between \~10 and \~12. Hence,
+murder appears to be bimodal with \~30% of states exhibiting a higher
+murder rate per 100 000 inhabitants compared to the rest of the data
+contained in the first mode which have murder rates lower than 10.
+
+**Q-Q Plot** and **ECDF**: The bimodality of the data is visible in both
+the Q-Q plot and the ECDF. The ECDF is particularly interesting as it
+clearly shows a gradual rise of the curve from around 0 to 7, then a
+brief plateau follower by a second steep rise in the 10-12 range. The
+Q-Q plot shows significant deviations from normality beyond 10 on the
+y-axis (sample quantlies) which corresponds to the second peak in the
+bimodal distribution.
+
+In the context of the dataset, murder rates seem to be surprisingly high
+in some states compared to the rest of the country.
+
+### HS Graduation Rate
+
+```{r}
+print_nice(hs_grad_result)
+```
+
+**Location**: The mean (**`r round(hs_grad_result$mean,  2)`**) and
+median **`r round(hs_grad_result$median,  2)`** are approximately
+identical, which in isolation suggests the data may be highly
+symmetrical. However, the standard deviation at
+**`r round(hs_grad_result$sd,  2)`** is high compared to the IQR of
+**`r round(hs_grad_result$IQR,  2)`** which indicates an unusually high
+variability in the data and potential bimodality.
+
+**Spread**: The data has a wide spread between min =
+**`r round(hs_grad_result$min,  2)`** and max =
+**`r round(hs_grad_result$max,  2)`** (range =
+**`r round(hs_grad_result$range,  2)`**).
+
+**Skewness**: No indication of skewness.
+
+```{r}
+plots_function(state.x77_dataframe$`HS Grad`, var_name = "HS Grad")
+```
+
+**Boxplot**: The boxplot, on its own, suggests almost perfect symmetry
+but the other plots clearly indicate bimodality.
+
+**Histogram**: The histogram reveals two peaks: a smaller one in the
+lower range and a larger peak in the higher range. This means that the
+percentage of high school graduates in most states is between \~50-60%.
+However, a smaller but non-negligible number of states have lower high
+school graduation rates in the \~38-43% range.
+
+**Q-Q Plot** and **ECDF**: The Q-Q plot shows that the data strongly
+deviates from a normal distribution, especially in the lower range which
+corresponds to the first mode. The ECDF illustrates the separation of
+the two peaks: a short but steep curve of the first mode is followed by
+a plateau between \~43 and \~46 on the x-axis, followed by a second
+curve with a more gradual increase but a small steep rise at \~53. The
+small steep rise at \~53 on the ECDF curve signifies that there is a
+concentration of data at this point which may be part of the reason why
+the mean also has this value and wasn't displaced from the median by the
+bimodal distribution.
+
+### Frost
+
+The frost variable is the mean number of days with minimum temperature
+below freezing (1931-1960) in capital or large city.
+
+```{r}
+print_nice(frost_result)
+```
+
+**Location**: The mean (**`r round(frost_result$mean,  2)`**) and
+(**`r round(frost_result$median,  2)`**) differ by 10 days which
+suggests that there are low values displacing the mean below the median.
+The mean approximates the central tendency of the data but the median is
+more reliable as the locus in this case.
+
+**Spread**: The standard deviation (**`r round(frost_result$sd,  2)`**)
+is large relative to the overall range of the data
+(**`r round(frost_result$range,  2)`**), meaning that the data is highly
+spread out and variable.
+
+**Skewness**: From the histogram and Q-Q plot we can conclude that the
+data is actually bimodal with some states having low numbers of days
+with freezing temperatures (e.g. Hawaii, our min value of 0).
+
+```{r}
+plots_function(state.x77_dataframe$Frost, var_name = "Frost")
+```
+
+**Boxplot**: The boxplot is not a useful visualization for this data as
+it does not show the bimodal distribution. The only useful information
+we can deduce is that the slightly longer left whisker means there are
+several states with little to no days with below-freezing temperatures.
+
+**Histogram**: The density curve is misleading as it smooths out the
+first peak of the bimodal distribution i.e. the data contained in the
+first bar. However the histogram bars are the best visualization here
+for the bimodallity of the data.
+
+**Q-Q Plot**: The Q-Q plot on its own it would not clearly indicate
+bimodality as most points fall close to the red qqline. However, the
+typical S-shaped curve of a bimodal distribution is still visible in the
+Q-Q plot, albeit its S-shape is more flattened out and may be difficult
+to notice at first glance.
+
+**ECDF**: Similarly, the ECDF plot barely makes the bimodal distribution
+visible. It is possible to identify a clear second mode around 130 on
+the x-axis but the first mode is barely distinguishable between 5 and
+10.
+
+## Correlation between variables
+
+### Scatterplot Matrix
+
+```{r}
+usa_subset <- state.x77[, c("Population", "Income", "Illiteracy", "Life Exp", 
+                            "Murder", "HS Grad", "Frost")]
+# Scatterplot matrix
+scatter_matrix(usa_subset)
+```
+
+
+### Correlation Matrix
+
+
+```{r}
+cor_matrix(usa_subset)
+```
+
+
+In this part, we look at some interesting correlations between the
+variables:
+
+**Illiteracy and Murder Rate (0.70)**: A strong positive correlation
+suggests that states with higher illiteracy rates tend to have higher
+murder rates. This indicates that education levels likely have something
+to do with murder rates or crime in general.
+
+**Illiteracy and Life Expectancy (-0.59)**: The negative correlation
+implies that states with higher illiteracy rates tend to have lower life
+expectancy. We can speculate that illiteracy likely doesn't exist in
+isolation but that it is the result of generally worse economic
+conditions and less access to things such as healthcare, balanced food
+or even free time to learn to read and write. Hence, illiteracy probably
+doesn't lower life expectancy on its own but it signifies a larger issue
+like poverty in these states which leads to lower life expectancy and
+more crime.
+
+**Murder Rate and Life Expectancy (-0.78)**: A strong negative
+correlation indicates that states with higher murder rates have lower
+life expectancy, which is not surprising and maybe shows that there are
+public safety issues in these states.
+
+**HS Graduation Rate and Life Expectancy (0.58)**: A positive
+correlation suggests that states with higher high school graduation
+rates also tend to have longer life expectancy. Again, we cannot make
+the conclusion that graduating high school increases life expectancy but
+the positive correlation may point to other societal issues which cause
+people to not graduate high school such as worse living conditions which
+in turn may lower life expectancy.
+
+**Income and HS Graduation Rate (0.62)**: A moderately strong positive
+correlation suggests that states with higher average income levels tend
+to have higher high school graduation rates, which makes sense as richer
+states may have more funding for education, more people can afford
+education and access it more easily.
+
+**Frost and Murder Rate (-0.54)**: A negative correlation suggests that
+colder states (those with more frost days) tend to have lower murder
+rates.
+
+**Population and Murder Rate (0.34)**: A weak positive correlation
+suggests that more populous states tend to have slightly higher murder
+rates maybe because crime is often concentrated in big cities.
+
+# EDA: Dataset "LakeHuron"
+
+The dataset LakeHuron contains annual measurements of the level of Lake
+Huron 1875-1972 (in feet).
+
+```{r}
+LakeHuron <- LakeHuron
+```
+
+## EDA of lake levels
+
+### Lake levels without considering the time aspect
+
+```{r}
+# To analyze just the lake levels we convert them to a numeric vector
+# LakeHuron is a ts object in R
+lake_levels <- as.numeric(LakeHuron)
+
+levels_result <- variable_analysis(lake_levels)
+print_nice(levels_result)
+```
+
+**Location**: The mean (**`r round(levels_result$mean,  2)`**) and
+median (**`r round(levels_result$median,  2)`**) are close to being
+identical which suggests a high level of symmetry and no outliers or
+extreme values.
+
+**Spread**: The data has a moderate range
+(**`r round(levels_result$range,  2)`**) and moderate spread. The middle
+50% of data is also pretty concentrated with an IQR of
+**`r round(levels_result$IQR,  2)`**.
+
+**Skewness**: The mean is slightly lower than the median which suggests
+that a few values below the median may be causing a slight deviation
+from symmetry. However, the data still appears to be very close to
+perfect symmetry.
+
+```{r}
+plots_function(lake_levels, var_name = "Lake Levels (no time)")
+```
+
+**Boxplot**: A few more data points below the median (the black line)
+can be deduced from the boxplot. Besides this, the data seems symmetric
+with no outliers.
+
+**Histogram**: Data is approximately symmetric and unimodal with a very
+slight left tail but not nearly enough to identify skewness.
+
+**Q-Q Plot**: Data is normally distributed with just a few deviations
+from the red qqline at the extremes.
+
+**ECDF**: The ECDF is smooth and continuous, indicating no outliers.
+
+### Lake levels including the time aspect
+
+From the time series plot above, there seems to be a decline in water
+levels as time progresses. However, we can't say if this decline is
+significant at this stage of analysis.
+
+Another interesting element in this data is that the max value was
+recorded in the first few years of measurements while the lowest water
+level was recorded near the end around 1965.
+
+```{r}
+plot(LakeHuron, main = "Lake Huron Water Levels (1875–1972)",
+     xlab = "Year", ylab = "Water Level", col = "blue", type = "l", xaxt = "n")
+axis(1, at = seq(1875, 1975, by = 5), labels = seq(1875, 1975, by = 5))
+
+# Min and max values
+points(time(LakeHuron)[which.min(LakeHuron)], levels_result$min, col = "red", pch = 19)
+points(time(LakeHuron)[which.max(LakeHuron)], levels_result$max, col = "red", pch = 19)
+
+```
+
+Upon examining the lowest recorded values (the valleys on the plot), it
+appears that over time the lowest recorded water level was being pushed
+further and further down.
+
+# Titanic
+
+Task: **Explore and visualize the Titanic dataset. How do age, gender,
+and class influence survival? Identify where Simpson's Paradox appears
+and explain the reasons behind this effect.**
+
+## Data Exploration
+
+```{r}
+str(Titanic)
+summary(Titanic)
+mosaicplot(Titanic, main ="Survival on the Titanic", color = TRUE)
+apply(Titanic, c(1,2,3,4), sum)
+```
+
+The dataset "Titanic" represents the survivors/non-survivors of the
+Titanic. They are divided into Sex (female-male), Class (1st, 2nd, 3rd,
+Crew), Age (Child, Adults) and Survival (Yes, No). An overview of this
+data can be seen in the mosaic plot.
+
+## Impact of Age, Sex and Class on Survival
+
+```{r, echo=FALSE}
+
+# Titanic-Datensatz als Tabelle verwenden
+titanic <- as.table(Titanic)
+
+layout(matrix(1:4, ncol = 2))
+# 1. Einfluss von Alter auf Überleben
+apply(titanic, c(3, 4), sum)
+mosaicplot(~ Age + Survived, titanic, color = TRUE, main = "Age vs Survived")
+
+# 2. Einfluss von Geschlecht auf Überleben
+apply(titanic, c(2, 4), sum)
+mosaicplot(~ Sex + Survived, titanic, color = TRUE, main = "Sex vs Survived")
+
+# 3. Einfluss von Klasse auf Überleben
+apply(titanic, c(1, 4), sum)
+mosaicplot(~ Class + Survived, titanic, color = TRUE, main = "Class vs Survived")
+
+# 4. Einfluss von Klasse, Geschlecht und Überleben
+apply(titanic, c(1, 2, 4), sum)
+mosaicplot(~ Class + Survived + Sex, titanic, color = TRUE, main = "Class, Sex vs Survived")
+
+layout(1)
+
+# 4. Einfluss von Alter, Klasse und Überleben
+apply(titanic, c(1, 2, 4), sum)
+mosaicplot(~ Class + Survived + Age, titanic, color = TRUE, main = "Age, Class vs Survived")
+
+
+```
+
+## Simpsons paradox & Interpretation
+
+Simpsons Paradox is a statistical phenomenon that occurs when subgroups
+are combined into one group. The process of aggregating data can cause
+the apparent direction and strength of the relationship between two
+variables to change.
+
+In the case of our Titanic dataset one would think that the survival
+rate of the female crew was very low. But if we look at the "Sex vs.
+Survived" plot in general the females had a better survival outcome.
+This is because there were not many female crew members, but overall 20
+out of 23 female crew members survived.
+
+Furthermore if we only look at "Class vs. Survived" one could think,
+that the survival is independent from sex - so the the better the class,
+the better the survival outcome. But if we also include the sex, we see
+for example that the survival rate of females in the first class is
+almost 100%, whereas men in the first class only had a survival rate of
+about 34%.
+
+Then if we look closely at the "Children in the Age vs. Survived" plot,
+we may think children do have a higher survival rate than adults. If we
+also include the class it becomes clear, that the survival rate of
+children is also very dependent on the class. The higher the class, the
+higher the survival rates in children.

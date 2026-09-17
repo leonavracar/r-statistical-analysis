@@ -1,0 +1,581 @@
+---
+title: "Statistical tests"
+author: "Leona Vracar"
+date: "2025-01-12"
+output:
+  html_document:
+    toc: true           # Enables Table of Contents (ToC)
+    toc_depth: 3        # Defines ToC depth (1=Main, 2=Subsections, etc.)
+    toc_float: true     # Makes ToC float on the side (for easy navigation)
+    number_sections: true  # Automatically numbers sections
+    code_folding: hide  # Collapses R code chunks by default
+    theme: readable     # Sets a readable theme for better visuals
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r EDA }
+# Function for EDA of single variables
+EDA <- function(vect) {
+  result <- list(
+    mean = mean(vect),
+    median = median(vect),
+    variance = var(vect),
+    sd = sd(vect),
+    IQR = IQR(vect),
+    min = min(vect),
+    max = max(vect),
+    range = max(vect) - min(vect)
+  )
+  return(result)
+}
+
+```
+
+```{r plots }
+plots_function <- function(input_vect, var_name = "default"){
+  par(mfrow = c(2,2), mar = c(4.5, 4.5, 3, 1)) 
+  
+  boxplot(
+    input_vect,
+    main = paste("Boxplot of", var_name),
+    col = "lightgreen",
+    horizontal = TRUE
+  )
+  # Histogram
+  hist(
+    input_vect,
+    main = paste("Histogram of", var_name),
+    xlab = var_name,
+    col = "lightblue",
+    freq = FALSE
+  )
+  lines(density(input_vect), col = "red", lwd = 2)  #density curve
+  
+  # Q-Q 
+  qqnorm(
+    input_vect,
+    main = paste("Q-Q Plot of", var_name),
+    col = "blue"
+  )
+  qqline(input_vect, col = "red", lwd = 2)  
+  
+  # ECDF
+  plot(
+    ecdf(input_vect),
+    main = paste("ECDF of", var_name),
+    xlab = var_name,
+    ylab = "ECDF"
+  )
+  
+  # Reset layout back to normal 1x1
+  par(mfrow = c(1, 1))
+}
+
+```
+
+```{r correlation }
+# function for correlation matrix
+
+cor_matrix <- function(data) {
+  result <- cor(data, use = "pairwise.complete.obs")  #NA values will be excluded pairwise
+  print(result)
+  heatmap(result, main = "Correlation Matrix", col = colorRampPalette(c("blue", "white", "red"))(20))
+}
+```
+
+```{r scatter }
+# function for scatterplot matrix
+scatter_matrix <- function(data, main_title = "Scatterplot Matrix", point_color = "darkblue", point_size = 0.8) {
+  pairs(
+    data,
+    main = main_title,
+    col = point_color,
+    cex = point_size
+  )
+}
+```
+
+# Task 1: Lab training for employees
+
+A lab sent employees to a pipetting training and wishes to test if the
+training was worthwhile by measuring the average times needed to
+complete 25 pipetting tasks **before** and **after** the training for
+individual employees (total of 10 employees).
+
+## EDA
+
+```{r}
+before <- c(1.36, 1.37, 1.29, 1.22, 1.38, 1.31, 1.40, 1.39, 1.30, 1.37)
+after <- c(1.29, 1.25, 1.20, 1.26, 1.25, 1.23, 1.26, 1.31, 1.24, 1.31)
+#difference <- after - before
+eda_before <- EDA(before)
+eda_after <- EDA(after)
+#eda_difference <- EDA(difference)
+
+# Create a data frame and round the values
+eda_results <- data.frame(
+  Before = round(unlist(eda_before), 3),
+  After = round(unlist(eda_after), 3)
+  #Difference = round(unlist(eda_difference), 3)
+)
+
+# Display the table
+knitr::kable(eda_results, caption = "Summary of EDA Results")
+```
+
+The EDA statistics suggest a reduction in pipetting time as both the
+mean and median are lower in the after-training dataset.
+
+```{r}
+plots_function(before, "Before training")
+```
+
+```{r}
+plots_function(after, "After training")
+```
+
+**QQ-Plot**:
+
+From the QQ-Plots both before and after training, it is difficult to
+make a definitive decision about the normality of the data. Since the
+dataset contains only 10 measurements, it is possible that the
+deviations from the red Q-Q line are due to natural variation that still
+falls within the range expected for a normal distribution.
+
+## Test approach
+
+Because the two samples are paired, we have two main options for testing
+the statistical significance of the observed difference in means. First,
+the parametric Student's t-test if data is normally distributed and
+second, the Wilcoxon-Rank Sum Test if the data deviates from normality.
+Therefore, before we make our choice, we have to check if the data is
+sampled from a normal distribution.
+
+### Shapiro-Wilks Test to check normality
+
+For the Shapiro-Wilks Test, the null hypothesis is that the data forms a
+normal distribution. If the p-value is greater than 0.05, we will not
+reject the null hypothesis i.e. the data is normal.
+
+```{r}
+sw_before <- shapiro.test(before) 
+sw_after <- shapiro.test(after)
+```
+
+```{r}
+sw_before
+```
+
+The p-value of 0.152 \> 0.05 hence we fail to reject the null
+hypothesis. The before data is normal.
+
+```{r}
+sw_after
+```
+
+The p-value of 0.571 is \> 0.05 hence the after data is also normal.
+
+Now that normality for both before- and after-training data has been
+confirmed, we proceed with the paired t-test.
+
+### Formulating hypotheses and performing the test
+
+First, we're going to look at the significance of the mean difference
+without assuming the direction of the mean difference.
+
+**Null Hypothesis (**$H_0$): The pipetting training led to no change in
+mean pipetting time.
+
+$$
+\mu_{\text{before}} = \mu_{\text{after}} \quad \text{or} \quad \mu_{\text{difference}} = 0
+$$
+
+**Alternative Hypothesis (**$H_A$): The pipetting training led to a
+statistically significant change in mean pipetting time.
+
+$$
+\mu_{\text{before}} \neq \mu_{\text{after}} \quad \text{or} \quad \mu_{\text{difference}} \neq 0
+$$
+
+### Paired t-test at the 5% confidence level
+
+```{r}
+t.test(before,after,paired = TRUE,conf.level = 0.95)
+
+```
+
+### Paired t-test at the 1% confidence level
+
+```{r}
+t.test(before, after, paired = TRUE,conf.level = 0.99)
+```
+
+## Interpretation
+
+Since the p-value \< 0.05 and \< 0.01, we can reject the null hypothesis
+at both confidence levels. The mean difference in the after-training
+group compared to the before-training group is statistically
+significant.
+
+The mean difference of 0.079 signifies a decrease from before-testing to
+after-testing (R calculates this value by subtracting the before and
+after values, hence if before \> after we get a positive mean
+difference).
+
+To specifically test if the training *reduced* pipetting times, we
+reformulate our hypotheses and perform a one-tailed paired t-test.
+
+**Null Hypothesis (**$H_0$): The pipetting training led to no change or
+an increase in mean pipetting time.
+
+$$
+\mu_{\text{before}} \leq \mu_{\text{after}} \quad \text{or} \quad \mu_{\text{difference}} \leq 0
+$$
+
+**Alternative Hypothesis (**$H_A$): The pipetting training led to a
+statistically significant decrease in mean pipetting time.
+
+$$
+\mu_{\text{before}} > \mu_{\text{after}} \quad \text{or} \quad \mu_{\text{difference}} > 0
+$$
+
+### One-tailed paired t-test at the 5% confidence level
+
+```{r}
+t.test(before, after, paired = TRUE, conf.level = 0.95, alternative = "greater")
+```
+
+### One-tailed paired t-test at the 1% confidence level.
+
+```{r}
+t.test(before, after, paired = TRUE, conf.level = 0.99, alternative = "greater")
+```
+
+The **p-value** from the one-tailed t-test is **0.0004055**, which
+allows us to confidently **reject the null hypothesis** at both
+confidence levels. Additionally, the p-value from the one-tailed test
+(**0.0004055**) is approximately half the p-value from the two-tailed
+test (**0.0008109**).
+
+This shows that the one-tailed test is more statistically powerful for
+detecting the direction of change in the pipetting times. The one-tailed
+test shows a lower p-value because the change in mean pipetting times is
+a statistically significant **decrease** more than just a significant
+change in either direction.
+
+#### Should the lab send employees to do this training in order to reduce their mean pipetting time?
+
+We established that the positive mean difference is statistically
+significant i.e. that the training lead to a statistically significant
+decrease in pipetting times. However, it is unlikely that a 0.079 mean
+decrease in pipetting time for 25x pipette actions is economically
+viable to justify training for the employees. We cannot make any
+recommendation for the training based on pipetting time alone as there
+are many other reasons to train employees such as improving accuracy.
+
+# Task 2: Survival Rate on the Titanic
+
+## Test approach
+
+In this task, the survival rate of women and children is compared to the
+rate of men within significance level of 1%.
+
+### Formulating hypotheses and performing the test
+
+H0: The mean survival rate of women and children is equal or less than the mean survival rate of men.
+HA: The mean survival rate of women and children is higher than the mean survival rate of men.
+
+After loading the data, 3 subgroups are extracted for performing the
+statistical test.
+
+```{r}
+data("Titanic")
+titanic_data <- as.data.frame(Titanic)
+# extract 3 subgroups for further analysis
+# count the survival and total rate
+#women
+survival_women <- sum((titanic_data$Survived == "Yes" & titanic_data$Sex == "Female") * titanic_data$Freq)
+total_women <- sum((titanic_data$Sex == "Female") * titanic_data$Freq)
+#men
+survival_men <- sum((titanic_data$Survived == "Yes" & titanic_data$Sex == "Male") * titanic_data$Freq)
+total_men <- sum((titanic_data$Sex == "Male") * titanic_data$Freq)
+#children
+survival_children <- sum((titanic_data$Survived == "Yes" & titanic_data$Age == "Child") * titanic_data$Freq)
+total_children <- sum((titanic_data$Age == "Child") * titanic_data$Freq)
+
+```
+
+It is important to multiply the sum of the survival rate with the
+frequency, because it is the total number of appearances. The Proper Test
+is used, to check the survival probability between different groups.
+This test is based on the binomial distribution: there are two options,
+the person survived on titanic or died. The parameter p shows the
+portion of the success of n attempts.
+
+```{r}
+# Proportional Test
+#prop.test(x,y, alternative = "greater")
+
+#women vs. men
+prop_women_men <- prop.test(c(survival_women, survival_men), c(total_women, total_men), 
+                                 alternative = "greater", conf.level = 0.99, correct = TRUE)
+prop_women_men
+
+#children vs. men 
+prop_children_men <- prop.test(c(survival_children, survival_men), c(total_children, total_men), 
+                                    alternative = "greater", conf.level = 0.99, correct = TRUE)
+prop_children_men
+```
+
+## Interpretation
+
+The x-squared test statistic of **women vs. men** is **454.5**. The
+p-value of **2.2e-16** shows, that with the significance level of
+**0.99** the null hypothesis (H0) has to be rejected. Meaning, that
+women on the Titanic had a higher survival rate than men.
+
+Comparing **children vs. men** the x-squared test has a value of
+**9.24e-14**. The p-value in this comparison has a value of
+**9.24e-14** within the significance level of 1% (0.99). Again, we reject the null hypothesis (H0) and accept the alternative hypothesis, which shows us, that children had a higher survival rate than men on the Titanic.
+
+# Task 3: Bacterial growth
+
+A biologist is comparing the mean growth rate of a culture in a petri
+dish every minute over a timespan of 20 minutes.
+
+The expected growth rate is 1% and the biologist wants to check if the
+used growth medium increases the growth rate.
+
+```{r}
+growth_rate <- c(0.146842, 0.156757, 0.091255, 0.063720, 0.148471, -0.045436, 0.150407, 0.077905, 0.077267, 0.026454, 0.090700, 0.245384, 0.129650, 0.141617, 0.039957, 0.165351, 0.029091, 0.073473, 0.189657, 0.123897)
+```
+## EDA
+
+```{r}
+EDA(growth_rate)
+plots_function(growth_rate, "Growth Rate")
+```
+
+The **mean** and **median** are close together, suggesting symmetry and
+no outliers. The Q-Q plot shows that the data is approximatelly normally distributed.
+
+## Test approach
+
+Since the biologist is interested in finding out if the growth rate is
+higher compared to the expected 1% and the data is normally distributed,
+a one-sample, one-tailed t-test is the correct choice.
+
+### Formulating hypotheses and performing the test
+
+**Null Hypothesis (**$H_0$): The mean growth rate is 1% or less.\
+$$
+\mu_{\text{0}} \leq 0.01
+$$
+
+**Alternative Hypothesis (**$H_A$): The mean growth rate is greater than
+1%.
+
+$$
+\mu_{\text{A}} > 0.01
+$$
+
+### One-sample, one-tailed t-test at 95% confidence level
+
+```{r}
+t.test(growth_rate, alternative = c("greater"), mu = 0.01)
+```
+
+### Interpretation
+
+The p-value is extremely small so we reject the null hypothesis. We
+would even reject the null hypothesis at a lower confidence level of
+0.01. The increase in mean growth rate is statistically significant.
+
+The observed mean growth rate is 0.1061209 or approximately 10.61%.
+
+From the 95% confidence interval [0.080326, Inf], we can say that the
+true mean growth rate is at least 0.080326 or approximately 8.03% with a
+95% confidence.
+
+# Task 4: Gene ontology
+
+## EDA
+
+There are 720 possible genes, of which only 696 are considered credible.
+413 genes are associated with cancer development, which is approximately
+59.3% of the credible genes. In a previous study, 55% of the genes were
+found to be involved.
+
+The **estimator** is the relative frequency of successes
+$\hat{p} = \frac{m}{n}$, which in our case is
+$\hat{p} = \frac{413}{696} = 0,593$.
+
+The **reference value** p0 is 0,55.
+
+## Selection of an appropriate test
+
+As parametric test we choose the proportion test with one sample,
+because we have only two possible results (is associated with cancer
+development or not) and assume that the data has a binomial distribution.
+
+## Formulating hypotheses
+
+The question is if the proportion of involved genes has significantly
+changed compared to a previous study, which found 55% of the genes to be
+involved.
+
+So the hypotheses are stated as followed (two-sided):
+
+H0: The proportion of involved genes is not significantly different from
+the 55% found in the previous study. ($H0:\hat{p} = 0,55$)
+
+HA: The proportion of involved genes is significantly different from the
+55% found in the previous study. ($HA:\hat{p} \neq 0,55$)
+
+## 95% confidence intervals
+
+```{r}
+proportion <- 413/696
+stichprobengroesse <- 696
+quantilunten_95 <- qnorm(0.025,mean = 0,sd=1)
+quantiloben_95 <- qnorm(0.975,mean = 0,sd=1)
+KI95_unten <-proportion+quantilunten_95*sqrt((proportion*(1-proportion))/stichprobengroesse) 
+KI95_oben <- proportion+quantiloben_95*sqrt((proportion*(1-proportion))/stichprobengroesse)
+
+quantilunten_99 <- qnorm(0.005, mean = 0, sd = 1)
+quantiloben_99 <- qnorm(0.995, mean = 0, sd = 1)
+KI99_unten <-proportion+quantilunten_99*sqrt((proportion*(1-proportion))/stichprobengroesse) 
+KI99_oben <- proportion+quantiloben_99*sqrt((proportion*(1-proportion))/stichprobengroesse)
+
+prop.test(413,696, p=0.55)
+
+
+```
+
+## 99% confidence intervals
+
+Per default settings the prop.test in R is set to a 95% confidence
+level, so to also get the 99% CI, the parameter conf.level is set to
+0.99
+
+```{r}
+prop.test(413,696, p=0.55, conf.level=0.99)
+```
+
+### Interpretation
+
+The 95% confidence interval ranges from 55.6% to 63.0%. The 99%
+confidence interval ranges from 54.4% to 64.1%. The 95% CI does not
+include 55%, but the 99% CI does. This means that if a significance
+level of alpha = 0.05 is chosen, the difference is significant and the
+null hypothesis (H0) can be rejected. However, if alpha = 0.01 is
+chosen, the difference is not significant, and the null hypothesis
+cannot be rejected.
+
+The p-value of 0.02361 supports this interpretation, because if
+alpha=0,05 (two sided, so 0,025 on each side), the p-value is smaller
+and H0 can be rejected, but if alpha = 0,01, the p-value is bigger and
+H0 cannot be rejected.
+
+# Task 5: Salary comparisons
+
+The data below shows the monthly salary of two different companies. In
+this analysis we want to find out, which company has the better salary.
+Therefore, we use data exploration and different test to find out.
+
+```{r}
+# save the data as a vector
+Company_1 <- c(4218.874, 2323.970,
+4104.761, 3172.519, 3058.287, 2386.729, 4405.709, 2665.709, 5326.124, 2993.015,
+5152.121, 3164.876, 2703.269, 3837.005, 2927.137, 2847.995, 3087.938, 3063.339,
+4697.341, 5602.379, 2992.996, 5052.060, 4095.423, 1668.059, 6268.097)
+
+Company_2 <- c(1888.252, 2429.395, 2062.037, 1932.138, 1788.335, 2119.263,
+2185.819, 2173.098, 2391.626, 1576.546, 1871.540, 2405.640, 2470.771, 1879.237,
+2181.048, 2272.962, 2174.767, 1729.053, 1119.993, 2325.788, 2112.610, 2847.006,
+1124.272, 5320.000, 4785.000)
+```
+
+## EDA
+
+```{r }
+# Function for analysis of variables
+
+EDA_company1 <- EDA(Company_1)
+EDA_company2 <- EDA(Company_2)
+
+```
+
+**Location**: The Company 1 has a mean of
+**`r round(EDA_company1$mean, 2)`** and a median of
+**`r round(EDA_company1$median, 2)`**. Company 2 has a mean of
+**`r round(EDA_company2$mean, 2)`** and a median of
+**`r round(EDA_company2$median, 2)`**
+
+**Spread/variation**: The data of the Company 1 has a standard deviation
+of **`r round(EDA_company1$sd, 2)`** which is smaller relative to the
+mean of **`r round(EDA_company1$mean, 2)`** . The IQR has a result of
+**`r round(EDA_company1$IQR, 2)`**.
+
+For Company 2 the data shows a SD of **`r round(EDA_company2$sd, 2)`**.
+which is also relatively small compared to the mean of
+**`r round(EDA_company2$mean, 2)`**.The IQR is
+**`r round(EDA_company2$IQR, 2)`** and the range is
+**`r round(EDA_company2$sd, 2)`**.
+
+```{r }
+
+plots_function(Company_1, var_name = "Company 1")
+plots_function(Company_2, var_name = "Company 2")
+
+```
+
+**Company 1**: In the boxplot there is a wide diversity of data in the
+Q3. The whiskers are long, because a lot of data is outside of the
+quantiles. The median is right next to the Q1. In the QQ-Plot of Company
+1 a shift in the middle of the data is noticeable. The Shapiro-Wilk-Test
+recognize heavy tails and outliers and is based on unimodality Due to
+the shift in the middle, the the values is categorized into 2 salary
+classes and the Shapiro-Wilk-Test is not allowed here. This shift is
+also recognizable in the ECDF. This example shows the importance of data
+exploration.
+
+**Company 2**: The two values outside of the boxplot whiskers can be
+detected in all plots. Especially, in the ECDF Plot the values are
+noticeable. Overall, the data is not normally distributed, due to the two
+heavy tails.
+
+
+## Test approach
+
+Due to the data not being normally distributed, we cannot use the t-Test. The Mann-Whitney-U-Test is necessary for this analysis.Especially because the samples of both companies are independent of one another.
+
+
+### Formulating hypotheses and performing the test
+
+**H0**: The salary median of company 1 is equal to the salary median of company 2.
+
+**HA**: The salary median of company 1 is not equal to the salary median of company 2.
+
+```{r}
+# Mann-Whitney-U-Test 
+result_wilcox <- wilcox.test(Company_1, Company_2, exact = FALSE, correct = FALSE, conf.int = FALSE)
+result_wilcox
+```
+
+Relating to the results of the Mann-Whitney-U-Test the H0 is rejected
+and the HA is accepted, because the p-value
+**`r (result_wilcox$p.value)`** is smaller than 0.05. This means that the salary medians of the two companies differ significantly.
+
+### Interpretation
+
+To interpret the results, we look at the median salaries of the two
+companies. The median of Company 1 is **`r round(EDA_company1$median, 2)`** and of Company 2 **`r round(EDA_company2$median, 2)`**. 
+
+Company 1 has a higher median than company 2. Since the median is the reliable measure for locus in this example (it is robust and not sensitive to outliers), we can conclude that company 1 offers a better median salary than company 2.
