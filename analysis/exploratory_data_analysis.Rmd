@@ -1,15 +1,14 @@
 ---
 title: "Exploratory Data Analysis"
 author: "Leona Vracar"
-date: "2025-01-12"
 output:
   html_document:
-    toc: true           # Enables Table of Contents (ToC)
-    toc_depth: 3        # Defines ToC depth (1=Main, 2=Subsections, etc.)
-    toc_float: true     # Makes ToC float on the side (for easy navigation)
-    number_sections: true  # Automatically numbers sections
-    code_folding: hide  # Collapses R code chunks by default
-    theme: readable     # Sets a readable theme for better visuals
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    code_folding: hide
+    theme: readable
 editor_options: 
   markdown: 
     wrap: 72
@@ -35,10 +34,10 @@ variable_analysis <- function(vect) {
   return(result)
 }
 
-# Just for nicer display in markdown 
+# Format summary statistics as a table
 # Execute this on a _result variable (output of variable_analysis(swiss$Fertility)) in a code block to get the  nice table in text)
 print_nice <- function(result) {
-  # put stats in tble
+  # Convert statistics to a formatted table
   table <- as.data.frame(t(as.data.frame(result)))
   colnames(table) <- "Value"  # value is 2nd column
   table <- round(table, 4)  
@@ -139,7 +138,7 @@ cor_matrix <- function(data) {
 }
 ```
 
-# EDA: Dataset "swiss"
+# Swiss Socioeconomic Data
 
 The dataset swiss contains 6 variables (columns) and 47 rows
 representing 47 French-spaking provinces of Switzerland at 1888.
@@ -276,8 +275,7 @@ normally distributed.
 shapiro.test(swiss$Agriculture)
 ```
 
-With a p-value of 0.193, we fail to reject the null hypothesis.
-Agriculture is from a normal distribution.
+With a p-value of 0.193, we do not reject the null hypothesis of normality; there is no strong evidence against a normal distribution.
 
 ### Education
 
@@ -380,8 +378,8 @@ values in the mid-range and another distinct peak (\~0.75 on y-axis or
 at 75%) in the high range.
 
 In the context of the dataset, the bimodal distribution means that most
-provinces were either completely non-Christian or close to 100%
-Christian. However, we do not have the data about the population size of
+provinces were either completely non-Catholic or close to 100%
+Catholic. However, we do not have the data about the population size of
 each province so we cannot make any statements about the the absolute
 number of Christians or non-Christians per province. For example, the
 max value of **`r round(catholic_result$max, 2)`** corresponding to the
@@ -395,7 +393,7 @@ print_nice(infant_result)
 ```
 
 **Location**: The mean (**`r round(infant_result$mean, 2)`**) and median
-(**`r round(infant_result$mean, 2)`**) are almost identical, suggesting
+(**`r round(infant_result$median, 2)`**) are almost identical, suggesting
 symmetrical data with little to no outliers.
 
 **Spread/Variation**: Both the SD at **`r round(infant_result$sd, 2)`**
@@ -482,13 +480,7 @@ and higher in urban areas. These findings are in line with common
 demographic patterns where lower birth rates are associated with higher
 education levels.
 
-**Fertility and Infant Mortality**: Higher fertility rates also have a
-positive correlation with infant mortality (r = 0.46). One (speculative)
-reason for this may be that having more children automatically leads to
-more children not surviving into adulthood. We could also speculate,
-that since fertility is higher in rural areas i.e. positively correlated
-with agriculture, it is possible that in 1888, medical care was not
-available which lead to more infant deaths.
+**Fertility and Infant Mortality**: Fertility and infant mortality are positively correlated (r = 0.46). This association may reflect underlying socioeconomic or geographic differences between provinces; the observational data do not establish a causal relationship.
 
 **Catholic**: One somewhat peculiar finding was the positive correlation
 between Catholic and Fertility (r = 0.46) suggesting that Catholic
@@ -497,7 +489,7 @@ positive correlation with Agriculture (r = 0.40) suggesting that more
 agricultural communities were more religious and had a higher rate of
 fertility.
 
-# EDA: Dataset "state.x77"
+# US State Demographic Data
 
 The state.x77 dataset includes various statistics (population, income,
 illiteracy etc.) from the 1970s for each USA-state.
@@ -614,7 +606,7 @@ potentially indicating a slight right-skew.
 **Spread**: Considering that the illiteracy rate is a percentage of the
 population of the respective state (and hence could technically take up
 values 0-100%), the data has low variability and a tight spread. The min
-at **`r round(illi_result$mean,  2)`** and max at
+at **`r round(illi_result$min,  2)`** and max at
 **`r round(illi_result$max,  2)`** confirm this. At most, the illiteracy
 rate is at 2.8% which is indicative of the fact that the US population
 across all states was highly literate in the 1970s.
@@ -847,8 +839,7 @@ variables:
 
 **Illiteracy and Murder Rate (0.70)**: A strong positive correlation
 suggests that states with higher illiteracy rates tend to have higher
-murder rates. This indicates that education levels likely have something
-to do with murder rates or crime in general.
+murder rates. This relationship should not be interpreted causally.
 
 **Illiteracy and Life Expectancy (-0.59)**: The negative correlation
 implies that states with higher illiteracy rates tend to have lower life
@@ -887,7 +878,7 @@ rates.
 suggests that more populous states tend to have slightly higher murder
 rates maybe because crime is often concentrated in big cities.
 
-# EDA: Dataset "LakeHuron"
+# Lake Huron Time-Series Data
 
 The dataset LakeHuron contains annual measurements of the level of Lake
 Huron 1875-1972 (in feet).
@@ -965,11 +956,7 @@ Upon examining the lowest recorded values (the valleys on the plot), it
 appears that over time the lowest recorded water level was being pushed
 further and further down.
 
-# Titanic
-
-Task: **Explore and visualize the Titanic dataset. How do age, gender,
-and class influence survival? Identify where Simpson's Paradox appears
-and explain the reasons behind this effect.**
+# Titanic Survival Analysis
 
 ## Data Exploration
 
@@ -989,38 +976,38 @@ data can be seen in the mosaic plot.
 
 ```{r, echo=FALSE}
 
-# Titanic-Datensatz als Tabelle verwenden
+
 titanic <- as.table(Titanic)
 
 layout(matrix(1:4, ncol = 2))
-# 1. Einfluss von Alter auf Überleben
+
 apply(titanic, c(3, 4), sum)
 mosaicplot(~ Age + Survived, titanic, color = TRUE, main = "Age vs Survived")
 
-# 2. Einfluss von Geschlecht auf Überleben
+
 apply(titanic, c(2, 4), sum)
 mosaicplot(~ Sex + Survived, titanic, color = TRUE, main = "Sex vs Survived")
 
-# 3. Einfluss von Klasse auf Überleben
+
 apply(titanic, c(1, 4), sum)
 mosaicplot(~ Class + Survived, titanic, color = TRUE, main = "Class vs Survived")
 
-# 4. Einfluss von Klasse, Geschlecht und Überleben
+
 apply(titanic, c(1, 2, 4), sum)
 mosaicplot(~ Class + Survived + Sex, titanic, color = TRUE, main = "Class, Sex vs Survived")
 
 layout(1)
 
-# 4. Einfluss von Alter, Klasse und Überleben
+
 apply(titanic, c(1, 2, 4), sum)
 mosaicplot(~ Class + Survived + Age, titanic, color = TRUE, main = "Age, Class vs Survived")
 
 
 ```
 
-## Simpsons paradox & Interpretation
+## Simpson's paradox & Interpretation
 
-Simpsons Paradox is a statistical phenomenon that occurs when subgroups
+Simpson's Paradox is a statistical phenomenon that occurs when subgroups
 are combined into one group. The process of aggregating data can cause
 the apparent direction and strength of the relationship between two
 variables to change.
