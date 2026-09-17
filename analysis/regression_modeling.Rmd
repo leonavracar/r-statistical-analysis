@@ -49,7 +49,7 @@ print_nice <- function(result) {
 
 ```
 
-# 1: United Nations statistics
+# Data Transformation and Linear Regression (UN dataset)
 
 In general the dataset UN provides information about National Statistics
 from the United Nations, Mostly from 2009–2011.
@@ -148,7 +148,7 @@ This means if the gdp is 1, the infant mortality will be e\^8,10377 (so
 about 3306,9 Infant deaths by age one per 1000 live births) and if the
 gdp increases by 1%, the infant mortality decreases by 0.6168%.
 
-# 2: Swiss demographic data
+# Multiple Regression: Swiss Fertility Data
 
 The swiss dataset is a data frame with 47 observations on 6 variables
 about Fertility and Socioeconomic Indicators from 1888. The 6 variables
@@ -297,7 +297,7 @@ and if Catholic is increased by 1 unit, Education is increased by
 decreasing effect on Education, but Catholic has an increasing effect on
 Education.
 
-# 3: US state demographic data
+# Multiple Regression: US State Data
 
 The USA dataset (state.x77) contains a matrix with 50 rows an 8 columns.
 The data is related to the 50 states of the United States of America and
@@ -452,7 +452,7 @@ negative effect on Murder rate. With a positive effect on the murder
 rate, we speak of an increase of this rate, whereas a negative effect
 stands for a decrease.
 
-# 4: Lake Huron timeseries dataset
+# Time-Series Modeling: Lake Huron
 
 LakeHuron is a time series dataset with annual measurements of the level
 of Lake Huron 1875-1972 (in feet).
@@ -659,7 +659,7 @@ Compared to the residuals plot of the simple linear regression, it is
 clear that the AR model is the correct choice for the time series
 dataset LakeHuron.
 
-# 5: Pima Indians diabetes dataset
+# Logistic Regression: Diabetes Prediction
 
 Women with Pima Indian heritage were tested for diabetes according to
 WHO criteria. The dataset has 532 entries.
