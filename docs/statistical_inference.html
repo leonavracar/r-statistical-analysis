@@ -11,7 +11,6 @@
 
 <meta name="author" content="Leona Vracar" />
 
-<meta name="date" content="2025-01-12" />
 
 <title>Statistical tests</title>
 
@@ -1581,7 +1580,6 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">Statistical tests</h1>
 <h4 class="author">Leona Vracar</h4>
-<h4 class="date">2025-01-12</h4>
 
 </div>
 
@@ -1654,9 +1652,9 @@ scatter_matrix &lt;- function(data, main_title = &quot;Scatterplot Matrix&quot;,
     cex = point_size
   )
 }</code></pre>
-<div id="task-1-lab-training-for-employees" class="section level1" number="1">
-<h1><span class="header-section-number">1</span> Task 1: Lab training
-for employees</h1>
+<div id="lab-training-for-employees" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Lab training for
+employees</h1>
 <p>A lab sent employees to a pipetting training and wishes to test if
 the training was worthwhile by measuring the average times needed to
 complete 25 pipetting tasks <strong>before</strong> and
@@ -1751,7 +1749,7 @@ falls within the range expected for a normal distribution.</p>
 testing the statistical significance of the observed difference in
 means. First, the parametric Student’s t-test if data is normally
 distributed and second, the Wilcoxon-Rank Sum Test if the data deviates
-from normality. Therefore, before we make our choice, we have to check
+from normality. Therefore, before we make the choice, we have to check
 if the data is sampled from a normal distribution.</p>
 <div id="shapiro-wilks-test-to-check-normality" class="section level3" number="1.2.1">
 <h3><span class="header-section-number">1.2.1</span> Shapiro-Wilks Test
@@ -1842,7 +1840,7 @@ to after-testing (R calculates this value by subtracting the before and
 after values, hence if before &gt; after we get a positive mean
 difference).</p>
 <p>To specifically test if the training <em>reduced</em> pipetting
-times, we reformulate our hypotheses and perform a one-tailed paired
+times, we reformulate the hypotheses and perform a one-tailed paired
 t-test.</p>
 <p><strong>Null Hypothesis (</strong><span class="math inline">\(H_0\)</span>): The pipetting training led to no
 change or an increase in mean pipetting time.</p>
@@ -1893,9 +1891,7 @@ t-test at the 1% confidence level.</h3>
 Additionally, the p-value from the one-tailed test
 (<strong>0.0004055</strong>) is approximately half the p-value from the
 two-tailed test (<strong>0.0008109</strong>).</p>
-<p>This shows that the one-tailed test is more statistically powerful
-for detecting the direction of change in the pipetting times. The
-one-tailed test shows a lower p-value because the change in mean
+<p>The one-tailed test shows a lower p-value because the change in mean
 pipetting times is a statistically significant <strong>decrease</strong>
 more than just a significant change in either direction.</p>
 <div id="should-the-lab-send-employees-to-do-this-training-in-order-to-reduce-their-mean-pipetting-time" class="section level4" number="1.3.2.1">
@@ -1914,9 +1910,9 @@ accuracy.</p>
 </div>
 </div>
 </div>
-<div id="task-2-survival-rate-on-the-titanic" class="section level1" number="2">
-<h1><span class="header-section-number">2</span> Task 2: Survival Rate
-on the Titanic</h1>
+<div id="survival-rate-on-the-titanic" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Survival Rate on the
+Titanic</h1>
 <div id="test-approach-1" class="section level2" number="2.1">
 <h2><span class="header-section-number">2.1</span> Test approach</h2>
 <p>In this task, the survival rate of women and children is compared to
@@ -1998,9 +1994,8 @@ alternative hypothesis, which shows us, that children had a higher
 survival rate than men on the Titanic.</p>
 </div>
 </div>
-<div id="task-3-bacterial-growth" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> Task 3: Bacterial
-growth</h1>
+<div id="bacterial-growth" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Bacterial growth</h1>
 <p>A biologist is comparing the mean growth rate of a culture in a petri
 dish every minute over a timespan of 20 minutes.</p>
 <p>The expected growth rate is 1% and the biologist wants to check if
@@ -2086,9 +2081,8 @@ true mean growth rate is at least 0.080326 or approximately 8.03% with a
 </div>
 </div>
 </div>
-<div id="task-4-gene-ontology" class="section level1" number="4">
-<h1><span class="header-section-number">4</span> Task 4: Gene
-ontology</h1>
+<div id="gene-ontology" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Gene ontology</h1>
 <div id="eda-2" class="section level2" number="4.1">
 <h2><span class="header-section-number">4.1</span> EDA</h2>
 <p>There are 720 possible genes, of which only 696 are considered
@@ -2096,8 +2090,8 @@ credible. 413 genes are associated with cancer development, which is
 approximately 59.3% of the credible genes. In a previous study, 55% of
 the genes were found to be involved.</p>
 <p>The <strong>estimator</strong> is the relative frequency of successes
-<span class="math inline">\(\hat{p} = \frac{m}{n}\)</span>, which in our
-case is <span class="math inline">\(\hat{p} = \frac{413}{696} =
+<span class="math inline">\(\hat{p} = \frac{m}{n}\)</span>, which in
+this case is <span class="math inline">\(\hat{p} = \frac{413}{696} =
 0,593\)</span>.</p>
 <p>The <strong>reference value</strong> p0 is 0,55.</p>
 </div>
@@ -2183,9 +2177,8 @@ H0 cannot be rejected.</p>
 </div>
 </div>
 </div>
-<div id="task-5-salary-comparisons" class="section level1" number="5">
-<h1><span class="header-section-number">5</span> Task 5: Salary
-comparisons</h1>
+<div id="salary-comparisons" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Salary comparisons</h1>
 <p>The data below shows the monthly salary of two different companies.
 In this analysis we want to find out, which company has the better
 salary. Therefore, we use data exploration and different test to find
