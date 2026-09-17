@@ -1,7 +1,6 @@
 ---
-title: 'Regression'
+title: 'Regression Modelling'
 author: "Leona Vracar"
-date: "2025-01-12"
 output:
   html_document:
     toc: true
@@ -50,8 +49,7 @@ print_nice <- function(result) {
 
 ```
 
-
-# Task 1: Transformation on dataset "UN"
+# 1: United Nations statistics
 
 In general the dataset UN provides information about National Statistics
 from the United Nations, Mostly from 2009–2011.
@@ -89,7 +87,7 @@ model.
 plot(cleaned_UN$ppgdp, cleaned_UN$infantMortality)
 
 #Residual plots for Infant Mortality and gross domestic product
-summary(lm(formula = cleaned_UN$ppgdp ~ cleaned_UN$infantMortality, data = UN))
+summary(lm(formula = infantMortality ~ ppgdp, data = cleaned_UN))
 par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
 plot(lm(formula = cleaned_UN$infantMortality ~ cleaned_UN$ppgdp, data = UN))
 
@@ -138,19 +136,19 @@ Therefore we can now fit a linear model.
 
 ### Linear Model Equation
 
-$log(InfantMortality) = 8.10377  - 0.61680 * log(gpd)$
+$log(InfantMortality) = 8.10377  - 0.61680 * log(gdp)$
 
 We should not forget, that the original data is a power function. So we
-have to adapt our linear model equation to be able to interpret the
+have to adapt the linear model equation to be able to interpret the
 given data.
 
-$InfantMortality=e^{8.10377} * gpd^{−0.61680}$
+$InfantMortality=e^{8.10377} * gdp^{−0.61680}$
 
 This means if the gdp is 1, the infant mortality will be e\^8,10377 (so
 about 3306,9 Infant deaths by age one per 1000 live births) and if the
-ggpd increases by 1%, the infant mortality decreases by 0.6168%.
+gdp increases by 1%, the infant mortality decreases by 0.6168%.
 
-# Task 2: Swiss
+# 2: Swiss demographic data
 
 The swiss dataset is a data frame with 47 observations on 6 variables
 about Fertility and Socioeconomic Indicators from 1888. The 6 variables
@@ -299,7 +297,7 @@ and if Catholic is increased by 1 unit, Education is increased by
 decreasing effect on Education, but Catholic has an increasing effect on
 Education.
 
-# Task 3: USA
+# 3: US state demographic data
 
 The USA dataset (state.x77) contains a matrix with 50 rows an 8 columns.
 The data is related to the 50 states of the United States of America and
@@ -344,7 +342,11 @@ pairs(state.x77_dataframe, lower.panel = panel.smooth,diag.panel = panel.hist, u
 
 ### Filtering based on Multicolinearity and Estimate Significance
 
-In this step, we look at multicolinearity of the variables and decide which ones need to be removed in order to correctly fit a multiple linear regression model. We also check the statistical significance of the estimates for each variable and remove them if they are below the 0.05 significance level.
+In this step, we look at multicolinearity of the variables and decide
+which ones need to be removed in order to correctly fit a multiple
+linear regression model. We also check the statistical significance of
+the estimates for each variable and remove them if they are below the
+0.05 significance level.
 
 ```{r}
 # Model adaptation
@@ -371,8 +373,8 @@ pairs(state.x77_dataframe[, -c(3, 6)], lower.panel = panel.smooth,diag.panel = p
 
 ```
 
-The data shows that Income has **0.530396** statistical significance.
-Therefore, it will be kicked out in the model below.
+The data shows that Income has a p-value of **0.530396** and it not statisticalyl significant.
+Therefore, it is removed from the model.
 
 ### MLR After Filtering
 
@@ -381,7 +383,7 @@ Therefore, it will be kicked out in the model below.
 lm_model_3 <- lm(formula = Murder ~. - Illiteracy -`HS Grad` -Income , data = state.x77_dataframe) 
 summary(lm_model_3)
 par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 1))
-plot(lm_model_2)
+plot(lm_model_3)
 par(mfrow = c(1, 1))
 
 ```
@@ -406,10 +408,11 @@ par(mfrow = c(1, 1))
 ```
 
 The plot "Residual vs Leverage" without the Alaska value is different
-compared to the plot that includes Alaska. Therefore, the Alaska value seems to
-be a bad leverage point as it displaces the red line in the leverage plot further away from being horizontal. The
-Multiple and Adjusted R-Squared did not change a lot. Therefore, this
-leverage point is not necessary for this model and can be kicked out.
+compared to the plot that includes Alaska. Therefore, the Alaska value
+seems to be a bad leverage point as it displaces the red line in the
+leverage plot further away from being horizontal. The Multiple and
+Adjusted R-Squared did not change a lot. Therefore, this leverage point
+is not necessary for this model and can be kicked out.
 
 If we now take a look at the final residual plots, we can say that:
 
@@ -435,10 +438,9 @@ The equation is stated as followed:
 
 $$ 
 Murder = 141.4 + 0.000143 * Population - 1.879 * Life Expectation - 0.02135 * Frost + 0.00001246 * Area 
-$$
-This means that if all the other variables are 0, Murder rate is about
-**141.4**. Mathematically, if Population increases by 1 unit, Murder
-rate increases by **0.000143** percentage points.
+$$ This means that if all the other variables are 0, Murder rate is
+about **141.4**. Mathematically, if Population increases by 1 unit,
+Murder rate increases by **0.000143** percentage points.
 
 If Life Expectancy increases by 1 unit, Murder rate decreases by
 **1.879** percentage points. If Frost is increased by 1 unit, Murder
@@ -450,9 +452,10 @@ negative effect on Murder rate. With a positive effect on the murder
 rate, we speak of an increase of this rate, whereas a negative effect
 stands for a decrease.
 
-# Task 4: Lake Huron
+# 4: Lake Huron timeseries dataset
 
-LakeHuron is a time series dataset with annual measurements of the level of Lake Huron 1875-1972 (in feet).
+LakeHuron is a time series dataset with annual measurements of the level
+of Lake Huron 1875-1972 (in feet).
 
 ```{r }
 
@@ -470,9 +473,14 @@ axis(1, at = seq(1875, 1975, by = 5), labels = seq(1875, 1975, by = 5))
 
 ## Model selection
 
-From the time series plot above, there seems to be a decline in water levels as time progresses. However, we can't say if this decline is significant at this stage of analysis. There is no symmetrical periodic pattern in the data which is expected as the measurements were taken annually.
+From the time series plot above, there seems to be a decline in water
+levels as time progresses. However, we can't say if this decline is
+significant at this stage of analysis. There is no symmetrical periodic
+pattern in the data which is expected as the measurements were taken
+annually.
 
-Next, we check the correlation between time (years) vs. lake levels and do a correlation test to check its significance.
+Next, we check the correlation between time (years) vs. lake levels and
+do a correlation test to check its significance.
 
 ```{r}
 
@@ -481,9 +489,23 @@ cor_time_levels <- cor(time, lake_levels)
 cor_time_levels
 ```
 
-The correlation between time and lake levels is **`r cor_time_levels`** which suggests that as one variable increases, the other decreases i.e. as time increases, the lake levels decrease. This correlation coefficient is in line with our visual observation of lake levels decreasing over time. It is important to note that since this is time-series data, there is no actual real-world correlation between the two variables i.e. time doesn't affect the change in lake levels but rather the lake levels decreased over time.
+The correlation between time and lake levels is **`r cor_time_levels`**
+which suggests that as one variable increases, the other decreases i.e.
+as time increases, the lake levels decrease. This correlation
+coefficient is in line with the visual observation of lake levels
+decreasing over time. It is important to note that since this is
+time-series data, there is no actual real-world correlation between the
+two variables i.e. time doesn't affect the change in lake levels but
+rather the lake levels decreased over time.
 
-To check if this correlation coefficient is significant, we perform both a two-tailed and one-tailed correlation test. In the two-tailed test, our null hypothesis is that the correlation coefficient is 0 and the alternative hypothesis is that the correlation coefficient is not equal to 0. In the one-tailed test, our null hypothesis is that the correlation coefficient is greater than or equal to 0 while the alternative hypothesis is that it is less than 0. Both tests are done at a 95% confidence level.
+To check if this correlation coefficient is significant, we perform both
+a two-tailed and one-tailed correlation test. In the two-tailed test,
+the null hypothesis is that the correlation coefficient is 0 and the
+alternative hypothesis is that the correlation coefficient is not equal
+to 0. In the one-tailed test, the null hypothesis is that the
+correlation coefficient is greater than or equal to 0 while the
+alternative hypothesis is that it is less than 0. Both tests are done at
+a 95% confidence level.
 
 ```{r}
 #two-tailed correlation test
@@ -495,11 +517,16 @@ cor_test_one_tailed <- cor.test(time, lake_levels, alternative = "less")
 print(cor_test_one_tailed)
 ```
 
-The two-tailed test confirms that the correlation value is statistically significant with a p value of **3.545e-08**. The one-tailed test produces an even lower p-value of **1.773e-08** which tells us the negative correlation coefficient is indeed statistically significant.
+The two-tailed test confirms that the correlation value is statistically
+significant with a p value of **3.545e-08**. The one-tailed test
+produces an even lower p-value of **1.773e-08** which tells us the
+negative correlation coefficient is indeed statistically significant.
 
 ## Linear Regression Model
 
-Since there are only have 2 variables (time and lake levels) and lake levels seem to decline in a linear fashion, we fit a simple linear model to the data.
+Since there are only have 2 variables (time and lake levels) and lake
+levels seem to decline in a linear fashion, we fit a simple linear model
+to the data.
 
 ```{r}
 model_lake_huron <- lm(LakeHuron ~ time(LakeHuron))
@@ -512,13 +539,24 @@ abline(model_lake_huron, col = "red", lwd = 1)
 
 From the linear model we can extract the following information:
 
--   **Residuals**: The residuals are the differences between observed levels and predicted levels in our regression model. They are are symmetric around the median which is very close to 0 and have a spread of about ±2.5.
+-   **Residuals**: The residuals are the differences between observed
+    levels and predicted levels in the regression model. They are are
+    symmetric around the median which is very close to 0 and have a
+    spread of about ±2.5.
 
--   **Slope**: The slope is **-0.0242** which means that lake level decreases by 0.0242 feet per year on average with a standard error of 0.004036.
+-   **Slope**: The slope is **-0.0242** which means that lake level
+    decreases by 0.0242 percentage points feet per year on average with a standard error
+    of 0.004036.
 
--   **Multiple R squared**: 27.25% of the variability in lake levels is explained with the linear trend over time. This score is pretty bad and suggests that explaining lake levels with time (in a linear model) is not accurate.
+-   **Multiple R squared**: 27.25% of the variability in lake levels is
+    explained with the linear trend over time. This score is pretty bad
+    and suggests that explaining lake levels with time (in a linear
+    model) is not accurate.
 
--   **F-statistic**: The F-statistic tells us if the model is a significantly better fit than no slope (a horizontal line). With a p-value of 3.545e-08, the linear relationship between time and lake levels is highly significant.
+-   **F-statistic**: The F-statistic tells us if the model is a
+    significantly better fit than no slope (a horizontal line). With a
+    p-value of 3.545e-08, the linear relationship between time and lake
+    levels is highly significant.
 
 ### Residual Plots
 
@@ -529,14 +567,24 @@ par(mfrow = c(1, 1))
 
 ```
 
-From the residuals vs. fitted plot, it is clear that the linear model is not a good fit for this dataset. There should ideally be no pattern in the residuals but we clearly see that there is a systematic pattern to them. The red smoothed line should be approximately flat around 0 and in our plot, it is u-curved which likely means there is a non-linear pattern in the data. The residuals also don't have constant variance, some are more widely spread while others are not. This suggests heteroscedasticity and that the model is not reliable.
-
+From the residuals vs. fitted plot, it is clear that the linear model is
+not a good fit for this dataset. There should ideally be no pattern in
+the residuals but we clearly see that there is a systematic pattern to
+them. The red smoothed line should be approximately flat around 0 and in
+the plot, it is u-curved which likely means there is a non-linear
+pattern in the data. The residuals also don't have constant variance,
+some are more widely spread while others are not. This suggests
+heteroscedasticity and that the model is not reliable.
 
 ## Autoregression
 
-As discussed previously, the data only has two variables. To potentially find a model that could predict future lake levels more accurately than a simple linear regression, we look into autocorrelation of lake levels.
+As discussed previously, the data only has two variables. To potentially
+find a model that could predict future lake levels more accurately than
+a simple linear regression, we look into autocorrelation of lake levels.
 
-Autocorrelation is the correlation of lake levels with its past lake levels. Specifically, it measures how strongly a variable correlate with itself at different lags (time intervals).
+Autocorrelation is the correlation of lake levels with its past lake
+levels. Specifically, it measures how strongly a variable correlate with
+itself at different lags (time intervals).
 
 To examine autocorrelation, we plot the autocorrelation function.
 
@@ -547,7 +595,12 @@ curve(acf(LakeHuron)$acf[2]^x, add=TRUE, col=3, lwd=2)
 par(mfrow = c(1,1))
 ```
 
-The acf curve is exponential which means that autocorrelation is high in the beginning (approximately 0.9) and steadily decreases from year to year. Basically, the lake levels correlate more with the levels of most recent past years. As time goes by, the autocorrelation drops which means that past lake levels (approximately beyond 10 lags) have less influence on current levels.
+The acf curve is exponential which means that autocorrelation is high in
+the beginning (approximately 0.9) and steadily decreases from year to
+year. Basically, the lake levels correlate more with the levels of most
+recent past years. As time goes by, the autocorrelation drops which
+means that past lake levels (approximately beyond 10 lags) have less
+influence on current levels.
 
 ```{r}
 par(mfrow = c(1, 2))
@@ -556,14 +609,16 @@ curve(acf(LakeHuron)$acf[2]^x, add=TRUE, col=3, lwd=2)
 par(mfrow = c(1, 1))
 ```
 
-An autoregression model where we just consider the previous value (known as AR(1)) has the formula:
+An autoregression model where we just consider the previous value (known
+as AR(1)) has the formula:
 
 $$
 X_t = \phi_1 X_{t-1} + \epsilon_t
 $$
 
 -   $X_t$: lake level measured at time $t$.
--   $\phi_1$: The coefficient for the influence of the previous lake level value ($X_{t-1}$) on the current one ($X_t$).
+-   $\phi_1$: The coefficient for the influence of the previous lake
+    level value ($X_{t-1}$) on the current one ($X_t$).
 -   $\epsilon_t$: Random error ($\epsilon_t \sim N(0, \sigma^2)$).
 
 ```{r}
@@ -578,9 +633,14 @@ abline(ar_lake_huron, col=3, lwd=2)
 summary(ar_lake_huron)
 ```
 
-There is a clear linear relationship and positive correlation between the current lake level $X_{t}$ and last year lake level $X_{t-1}$. The R-squared value at 0.7037 indicates that 70.37% of variation in lake level is explained by the past year lake level. The AR(1) coefficient $\phi_1$ is 0.83641 indicating that around 83.64% of the current lake level can be explained by the last year's lake level. 
+There is a clear linear relationship and positive correlation between
+the current lake level $X_{t}$ and last year lake level $X_{t-1}$. The
+R-squared value at 0.7037 indicates that 70.37% of variation in lake
+level is explained by the past year lake level. The AR(1) coefficient
+$\phi_1$ of 0.83641 indicates that a one-foot increase in the previous year's lake level is associated with an approximately 0.836-foot increase in the current year's level.
 
-Overall, the AR(1) model seems to be better suited than a simple linear regression with time/lake level.
+Overall, the AR(1) model seems to be better suited than a simple linear
+regression with time/lake level.
 
 #### Residual diagnostic plots
 
@@ -592,17 +652,26 @@ acf(residuals(ar_lake_huron))
 par(mfrow = c(1, 1))
 ```
 
-The Residuals vs. Fitted plot shows no trend for the residuals and almost a perfect fitted horizontal line at 0. This indicates that there is no pattern for the residuals and that the AR model is a good fit. Compared to the residuals plot of our simple linear regression, it is clear that the AR model is the correct choice for the time series dataset LakeHuron.
+The Residuals vs. Fitted plot shows no trend for the residuals and
+almost a perfect fitted horizontal line at 0. This indicates that there
+is no pattern for the residuals and that the AR model is a good fit.
+Compared to the residuals plot of the simple linear regression, it is
+clear that the AR model is the correct choice for the time series
+dataset LakeHuron.
 
-# Task 5: Pima Indians
+# 5: Pima Indians diabetes dataset
 
-Women with Pima Indian heritage were tested for diabetes according to WHO criteria. The dataset has 532 entries.
+Women with Pima Indian heritage were tested for diabetes according to
+WHO criteria. The dataset has 532 entries.
 
 ## EDA
 
-In this task, we're fitting a logistic  regression model to explain diabetes (variable "type") using independent variables age, npreg, bmi, glu, bp, ped and skin. 
+In this task, we're fitting a logistic regression model to explain
+diabetes (variable "type") using independent variables age, npreg, bmi,
+glu, bp, ped and skin.
 
-Before that, we must check if the conditions for a logistic regression model are satisfied. 
+Before that, we must check if the conditions for a logistic regression
+model are satisfied.
 
 ```{r}
 data("Pima.tr", package = "MASS")
@@ -614,26 +683,54 @@ pairs(Pima_numeric, lower.panel = panel.smooth, diag.panel = panel.hist, upper.p
 
 Key conditions:
 
-1. Binary dependent variable: Logistic regression is a suitable model because our dependent variable i.e. diabetes has only two possible outcomes "yes" and "no".
+1.  Binary dependent variable: Logistic regression is a suitable model
+    because the dependent variable i.e. diabetes has only two possible
+    outcomes "yes" and "no".
 
-2. Multicolinearity: the independent variables must not be correlated with each other. We check this using a correlation matrix and residual plots.
+2.  Multicolinearity: the independent variables must not be correlated
+    with each other. We check this using a correlation matrix and
+    residual plots.
 
-Looking at the correlation matrix above, we can clearly identify a strong positive (r > 0.5) correlaiton between: "bmi/skin" and "npreg/age". 
+Looking at the correlation matrix above, we can clearly identify a
+strong positive (r \> 0.5) correlaiton between: "bmi/skin" and
+"npreg/age".
 
-The strong positive correlation between "bmi" and "skin" is not surprising as "skin" is a measure of triceps skin fold thickness in milimiters. The correlation is also visible in the steep correlation line on the scatterplot. We decided to remove "skin" from the rest of the analysis as it appears to have more outliers than BMI and we percieved BMI as a more accurate measurement of weight and height compared to "skin" which may play a role in explaining diabetes.
+The strong positive correlation between "bmi" and "skin" is not
+surprising as "skin" is a measure of triceps skin fold thickness in
+milimiters. The correlation is also visible in the steep correlation
+line on the scatterplot. We decided to remove "skin" from the rest of
+the analysis as it appears to have more outliers than BMI and we
+percieved BMI as a more accurate measurement of weight and height
+compared to "skin" which may play a role in explaining diabetes.
 
-Regarding the positive correlation between variables "npreg" (number of pregnancies) and "age", we decided to remove "age" from the rest of the analysis as it showed a mild positive correlation with both "bp" (r = 0.39) and "glu" (r = 34) while "npreg" didn't have mild correlations with any other variables.
+Regarding the positive correlation between variables "npreg" (number of
+pregnancies) and "age", we decided to remove "age" from the rest of the
+analysis as it showed a mild positive correlation with both "bp" (r =
+0.39) and "glu" (r = 0.34) while "npreg" didn't have mild correlations
+with any other variables.
 
-3. No extreme outliers as logistic regression is sensitive to extreme values. This can be checked visually on histograms and boxplots or by looking at Cook's distance.
+3.  No extreme outliers as logistic regression is sensitive to extreme
+    values. This can be checked visually on histograms and boxplots or
+    by looking at Cook's distance.
 
-At this stage, there does not appear to be any extreme/concerning behavior of any remaining variables in the histograms above. We will confirm this by looking at Cook's distance in a later stage.
+At this stage, there does not appear to be any extreme/concerning
+behavior of any remaining variables in the histograms above. We will
+confirm this by looking at Cook's distance in a later stage.
 
-4. The binary choices (yes/no) in the "type" variable should be approximately balanced.
+4.  The binary choices (yes/no) in the "type" variable should be
+    approximately balanced.
 
 ```{r}
 table(Pima.tr$type)
 ```
-Looking at the balance between yes/no, we see that 34% of women had diabetes while 66% did not. This ratio is still acceptable to continue with fitting a logistic regression model but we can keep this information in the back of our mind in case our model shows strong favoring of predicting "no". In this case, weighed logistic regression is a potential fix (assigning more weight to "yes" because it's the minority).
+
+Looking at the balance between yes/no, we see that 34% of women had
+diabetes while 66% did not. This ratio is still acceptable to continue
+with fitting a logistic regression model but we can keep this
+information in mind in case the model shows strong
+favoring of predicting "no". In this case, weighed logistic regression
+is a potential fix (assigning more weight to "yes" because it's the
+minority).
 
 ## Logistic Regression Model
 
@@ -642,7 +739,11 @@ model_pima <- glm(type ~ npreg + bmi + glu + bp + ped, data = Pima.tr, family = 
 
 summary(model_pima)
 ```
-Looking at the p-values from the model, we can deduce that "bp" is not a relevant predictor for diabetes (p = 0.79416). Hence, "bp" is removed from the rest of the analysis. Hence, the logistic regression equation (with variables rounded to 3 decimals) is as follows: 
+
+Looking at the p-values from the model, we can deduce that "bp" is not a
+relevant predictor for diabetes (p = 0.79416). Hence, "bp" is removed
+from the rest of the analysis. Hence, the logistic regression equation
+(with variables rounded to 3 decimals) is as follows:
 
 $$
 logit(type) = \log \left( \frac{P(Y = 1)}{P(Y = 0)} \right) = -9.511 + 0.170 \cdot \text{npreg} + 0.079 \cdot \text{bmi} + 0.034 \cdot \text{glu} + 1.761 \cdot \text{ped}
@@ -654,10 +755,24 @@ model_pima_no_bp <- glm(type ~ npreg + bmi + glu + ped, data = Pima.tr, family =
 summary(model_pima_no_bp)
 ```
 
+Plasma glucose concentration ("glu") is a highly statistically
+significant predictor in the model with a p value of **9.56e-08** . The
+estimate for "glu" is **0.034749** meaning that if plasma glucose
+increases by 1-unit, the logarithmic odds of having diabetes increase by
+**0.034749**. If we calculate this in terms of odds ratio we get that
+$exp(0.034749) \approx 1.035$, so 1-unit increase in "glu" increases
+odds of having diabetes by approximately 3.5% (if all other variables
+are constant).
 
-Plasma glucose concentration ("glu") is a highly statistically significant predictor in the model with a p value of **9.56e-08 **. The estimate for "glu" is **0.034749** meaning that if plasma glucose increases by 1-unit, the logarithmic odds of having diabetes increase by **0.034749**. If we calculate this in terms of odds ratio we get that $exp(0.034749) \approx 1.035$, so 1-unit increase in "glu" increases odds of having diabetes by approximately 3.5% (if all other variables are constant).
-
-An important predictor with a high estimate value and statistical significance (**p = 0.00696**) is "ped" or the pedigree function (basically the genetic risk factor based on family history of a diabetes). The estimate for "ped" is **1.764673** meaning that log odds for diabetes increase by this value for a 1-unit increase in "ped". The odds ratio is $exp(1.764673) \approx 5.840$ which shows us that the odds of having diabetes increase by around 5.8 times for a 1-unit increase in "ped". We can conclude that family history of diabetes is a strong predictor for having diabetes.
+An important predictor with a high estimate value and statistical
+significance (**p = 0.00696**) is "ped" or the pedigree function
+(basically the genetic risk factor based on family history of a
+diabetes). The estimate for "ped" is **1.764673** meaning that log odds
+for diabetes increase by this value for a 1-unit increase in "ped". The
+odds ratio is $exp(1.764673) \approx 5.840$ which shows us that the odds
+of having diabetes increase by around 5.8 times for a 1-unit increase in
+"ped". We can conclude that family history of diabetes is a strong
+predictor for having diabetes.
 
 ```{r}
 format_glm_output <- function(model) {
@@ -676,11 +791,16 @@ format_glm_output(model_pima_no_bp)
 
 ```
 
-The number of pregnancies ("npreg") is also a statistically sigificant predictor (p = 0.00133) and odds ratio of $exp(0.173367) \approx 1.1893$ which means that one pregnancy increases the odds of having diabetes by approximately 1.19 times or by about 19%. 
+The number of pregnancies ("npreg") is also a statistically sigificant
+predictor (p = 0.00133) and odds ratio of $exp(0.173367) \approx 1.1893$
+which means that one pregnancy increases the odds of having diabetes by
+approximately 1.19 times or by about 19%.
 
 ## Cook's Distance
 
-As the threshold we set the typical 4/n and looked at the remaining variables to make sure there are no extreme outliers or mistakes in the data which could be skewing the model.
+As the threshold we set the typical 4/n and looked at the remaining
+variables to make sure there are no extreme outliers or mistakes in the
+data which could be skewing the model.
 
 ```{r}
 cooks_values <- cooks.distance(model_pima_no_bp)
@@ -691,11 +811,16 @@ influential_points <- which(cooks_values > threshold)
 Pima.tr[influential_points, ]
 ```
 
-Cook's distance identified 16 possible outliers but no value was unusually high (as to be impossible or a clear mistake). Some women had 12 or 13 children and some had high glucose levels but all within the expected range. Since we didn't identify any unexpected values, we decided to proceed without removing anything.
+Cook's distance identified 16 possible outliers but no value was
+unusually high (as to be impossible or a clear mistake). Some women had
+12 or 13 children and some had high glucose levels but all within the
+expected range. Since we didn't identify any unexpected values, we
+decided to proceed without removing anything.
 
 ## Receiver Operating Characteristic (ROC)
 
-In this final part of the analysis, we use ROC to evaluate the performance of the logistic regression model.
+In this final part of the analysis, we use ROC to evaluate the
+performance of the logistic regression model.
 
 ```{r}
 #install.packages("pROC")
@@ -715,11 +840,18 @@ auc_value <- auc(roc_curve)
 auc_value
 ```
 
-The blue ROC-curve shows our data compared to the diagonal gray line which is the baseline case (if the data was random). The closer the ROC-curve to the corner, the more accurate is our model for predicting diabetes. Vice versa, if the ROC curve is closer to the diagonal baseline, the less accurate our model for making predictions. 
+The blue ROC-curve shows the data compared to the diagonal gray line
+which is the baseline case (if the data was random). The closer the
+ROC-curve to the corner, the more accurate is the model for predicting
+diabetes. Vice versa, if the ROC curve is closer to the diagonal
+baseline, the less accurate the model for making predictions.
 
-To get a numerical representation of the curve, we can calculate the AUC or area under curve which tells us how accurate our model is at correctly recognizing a true positives and true negatives. Our model would be perfect if it had an AUC score of 1.
+To get a numerical representation of the curve, we can calculate the AUC
+or area under curve which tells us how accurate the model is at
+correctly recognizing a true positives and true negatives. The model
+would be perfect if it had an AUC score of 1.
 
-Our **AUC score o 0.8415** is therefore very good and suggests that our model correctly identifies between diabetic and non-diabetic patients about 84.15% of the time.
+The **AUC score of 0.8415** indicates good discrimination between diabetic and non-diabetic cases.
 
 ### Confusion matrix
 
@@ -744,13 +876,27 @@ cat("TN:", TN, "\n")
 cat("FN:", FN, "\n")
 ```
 
-Looking at the confusion matrix, we identify 39 true positives and 120 true negatives compared with 29 false negatives (women who had diabetes but weren't correctly predicted) and 12 false positives. 
+Looking at the confusion matrix, we identify 39 true positives and 120
+true negatives compared with 29 false negatives (women who had diabetes
+but weren't correctly predicted) and 12 false positives.
 
-There is a bit of concern with the false negatives as the rate of false negatives $FNR = FN/ (FN+TP) = 0.4264706$ means that approximately 42.7% of women who had diabetes would be incorrectly predicted as non-diabetic by our model (and around 57.3% diabetic women would be correctly identified). What are some possible reasons for this?
+There is a bit of concern with the false negatives as the rate of false
+negatives $FNR = FN/ (FN+TP) = 0.4264706$ means that approximately 42.7%
+of women who had diabetes would be incorrectly predicted as non-diabetic
+by the model (and around 57.3% diabetic women would be correctly
+identified). What are some possible reasons for this?
 
-If we look back at our examination of requirements for the logistic regression model, we found that the data contained more participants without diabetes (66% "No"). This meant that from the beginning, the model was slightly biased towards "No". From the confusion matrix and false negative rate, we see that our model is moderately good at recognizing diabetic women (**TPR = 57.3%**) and very good at recognizing non-diabetics with a false positive rate of $FPR = FP/(FP+TN) = 0.0909$ or just around 9.1%.
+If we look back at the examination of requirements for the logistic
+regression model, we found that the data contained more participants
+without diabetes (66% "No"). This meant that from the beginning, the
+model was slightly biased towards "No". From the confusion matrix and
+false negative rate, we see that the model is moderately good at
+recognizing diabetic women (**TPR = 57.3%**) and very good at
+recognizing non-diabetics with a false positive rate of
+$FPR = FP/(FP+TN) = 0.0909$ or just around 9.1%.
 
-In conclusion, while the model is good at correctly predicting non-diabetics, it has a moderate accuracy for identifying diabetics. A possible improvement would be using weighed logistic regression to balance out the imbalance between the number of "yes" and "no" responses in the "type" variable
-
-
-
+In conclusion, while the model is good at correctly predicting
+non-diabetics, it has a moderate accuracy for identifying diabetics. A
+possible improvement would be using weighed logistic regression to
+balance out the imbalance between the number of "yes" and "no" responses
+in the "type" variable
